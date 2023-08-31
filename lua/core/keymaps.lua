@@ -11,6 +11,7 @@ keymap.set("n", "Q", "ZQ")
 keymap.set("n", "<F9>", ":NvimTreeToggle<cr>")
 
 keymap.set({ "n", "i", "v" }, "<F10>", ":Neoformat<cr>")
+keymap.set({ "n", "i", "v" }, "<F5>", ":w<cr>")
 keymap.set("n", "gpt", ":Neural<cr>")
 
 -- telescope
@@ -21,3 +22,9 @@ keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>") -- list open buffers
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>") -- list available help tags
 
 keymap.set("n", "<c-g>", ":!lazygit<cr>")
+-- auto save
+map("n", "<leader>as", ":ASToggle<CR>", opt)
+
+vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordText Visual" })
+vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordRead Visual" })
+vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordWrite Visual" })

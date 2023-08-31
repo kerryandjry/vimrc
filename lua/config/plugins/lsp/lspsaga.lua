@@ -36,4 +36,5 @@ return {
 	end,
 	-- vim.keymap.set("n", "[a", "<cmd>Lspsaga diagnostic_jump_prev<CR>"),
 	-- vim.keymap.set("n", "]a", "<cmd>Lspsaga diagnostic_jump_next<CR>")
+	vim.keymap.set("n", "K", "<cmd>Lspsaga peek_definition<CR>"), -- show documentation for what is under cursor
 }

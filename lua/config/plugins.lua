@@ -16,7 +16,6 @@ require("lazy").setup({
 	require("config.plugins.gruvbox"),
 	require("config.plugins.init"),
 	require("config.plugins.comment"),
-	require("config.plugins.flash"),
 	require("config.plugins.toggleterm"),
 	require("config.plugins.telescope"),
 	require("config.plugins.snippets"),
@@ -27,8 +26,19 @@ require("lazy").setup({
 	require("config.plugins.tree"),
 	require("config.plugins.surround"),
 	require("config.plugins.autocomplete"),
+	require("config.plugins.illuminate"),
+	require("config.plugins.which-key"),
+	-- require("config.plugins.autosave"),
 	require("config.plugins.lsp.lspconfig"),
 	require("config.plugins.lsp.null-ls"),
 	require("config.plugins.lsp.mason"),
 	require("config.plugins.lsp.lspsaga"),
+
+	checker = {
+		enable = true,
+		notify = false,
+	},
+	change_detection = {
+		notify = false,
+	},
 })

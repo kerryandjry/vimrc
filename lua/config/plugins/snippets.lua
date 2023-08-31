@@ -8,7 +8,6 @@ return {
 			-- vim.g.UltiSnipsExpandTrigger = ""
 			-- vim.g.UltiSnipsJumpForwardTrigger = ""
 			-- vim.g.UltiSnipsJumpBackwardTrigger = ""
-		end
+		end,
 	},
 }
-
