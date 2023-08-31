@@ -27,6 +27,7 @@ require("lazy").setup({
 	require("config.plugins.tree"),
 	require("config.plugins.surround"),
 	require("config.plugins.autocomplete"),
+	require("config.plugins.which-key"),
 	require("config.plugins.lsp.lspconfig"),
 	require("config.plugins.lsp.null-ls"),
 	require("config.plugins.lsp.mason"),
