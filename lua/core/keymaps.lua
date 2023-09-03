@@ -21,3 +21,6 @@ keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>") -- list open buffers
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>") -- list available help tags
 
 keymap.set("n", "<c-g>", ":!lazygit<cr>")
+
+-- auto save
+vim.api.nvim_set_keymap("n", "<leader>as", ":ASToggle<CR>", { noremap = true, silent = true })
