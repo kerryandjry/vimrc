@@ -34,4 +34,12 @@ require("lazy").setup({
 	require("config.plugins.lsp.null-ls"),
 	require("config.plugins.lsp.mason"),
 	require("config.plugins.lsp.lspsaga"),
+
+	checker = {
+		enable = true,
+		notify = false,
+	},
+	change_detection = {
+		notify = false,
+	},
 })
