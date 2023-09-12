@@ -29,10 +29,15 @@ require("lazy").setup({
 	require("config.plugins.illuminate"),
 	require("config.plugins.which-key"),
 	-- require("config.plugins.autosave"),
+
+	-- lsp setup
 	require("config.plugins.lsp.lspconfig"),
 	require("config.plugins.lsp.null-ls"),
 	require("config.plugins.lsp.mason"),
 	require("config.plugins.lsp.lspsaga"),
+
+	-- dap setup
+	require("config.plugins.dap.nvim-dap"),
 
 	checker = {
 		enable = true,

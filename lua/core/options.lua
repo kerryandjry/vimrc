@@ -23,8 +23,13 @@ opt.smartcase = true -- if you include mixed case in your search, assumes you wa
 -- cursor line
 opt.cursorline = true -- highlight the current cursor line
 
--- appearance
+-- spell
+opt.spell = false -- disable spell check
 
+-- appearance
+opt.showmode = false
+opt.mouse = "a"
+opt.swapfile = false -- don't create swapfile
 -- turn on termguicolors for nightfly colorscheme to work
 -- (have to use iterm2 or any other true color terminal)
 opt.termguicolors = true
