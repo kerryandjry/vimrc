@@ -28,6 +28,7 @@ require("lazy").setup({
 	require("config.plugins.autocomplete"),
 	require("config.plugins.illuminate"),
 	require("config.plugins.which-key"),
+	require("config.plugins.nvim-gpt"),
 	-- require("config.plugins.autosave"),
 
 	-- lsp setup

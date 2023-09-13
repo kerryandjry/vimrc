@@ -12,7 +12,6 @@ keymap.set({ "n", "i", "v" }, "<F1>", ":w<cr>")
 
 keymap.set("n", "<F9>", ":NvimTreeToggle<cr>")
 keymap.set({ "n", "i", "v" }, "<F10>", ":Neoformat<cr>")
-keymap.set("n", "gpt", ":Neural<cr>")
 
 -- telescope
 keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>") -- find files within current working directory, respects .gitignore
@@ -52,3 +51,7 @@ map("n", "<leader>as", ":ASToggle<CR>", opt)
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordText Visual" })
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordRead Visual" })
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordWrite Visual" })
+
+-- nvim-gpt
+keymap.set("n", "<leader>g", ":ChatGPT<cr>")
+keymap.set("n", "<leader>c", ":ChatGPTCompleteCode<cr>")
