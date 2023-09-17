@@ -24,6 +24,8 @@ keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", { desc = "Find s
 keymap.set("n", "<leader>o", "<cmd>Telescope oldfiles<cr>") -- list recently opened files
 keymap.set("n", "<leader>k", "<cmd>Telescope live_grep initial_mode=insert<cr>") -- list strings in current working directory as you type
 
+keymap.set("n", "ml", "<cmd>Telescope bookmarks list<cr>") -- bookmarks list
+
 -- lazygit
 keymap.set("n", "<c-g>", ":!lazygit<cr>")
 
