@@ -37,9 +37,6 @@ require("lazy").setup({
 	require("config.plugins.lsp.mason"),
 	require("config.plugins.lsp.lspsaga"),
 
-	-- dap setup
-	-- require("config.plugins.dap.nvim-dap"),
-
 	checker = {
 		enable = true,
 		notify = false,
