@@ -30,6 +30,7 @@ require("lazy").setup({
 	require("config.plugins.which-key"),
 	require("config.plugins.nvim-gpt"),
 	require("config.plugins.bookmarks"),
+	require("config.plugins.discord-presence"),
 	-- require("config.plugins.autosave"),
 
 	-- lsp setup
