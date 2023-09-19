@@ -37,6 +37,8 @@ require("lazy").setup({
 	require("config.plugins.lsp.mason"),
 	require("config.plugins.lsp.lspsaga"),
 
+	-- TODO: add dap
+
 	checker = {
 		enable = true,
 		notify = false,
