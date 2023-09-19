@@ -11,7 +11,6 @@ keymap.set("n", "Q", "ZQ")
 keymap.set({ "n", "i", "v" }, "<F1>", ":w<cr>")
 
 keymap.set("n", "<F9>", ":NvimTreeToggle<cr>")
-keymap.set({ "n", "i", "v" }, "<F10>", ":Neoformat<cr>")
 
 -- telescope
 keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>") -- find files within current working directory, respects .gitignore
@@ -27,7 +26,7 @@ keymap.set("n", "<leader>k", "<cmd>Telescope live_grep initial_mode=insert<cr>")
 keymap.set("n", "ml", "<cmd>Telescope bookmarks list<cr>") -- bookmarks list
 
 -- lazygit
-keymap.set("n", "<c-g>", ":!lazygit<cr>")
+keymap.set("n", "<c-g>", ":lazygit<cr>")
 
 -- dap
 -- keymap.set(
@@ -46,9 +45,6 @@ keymap.set("n", "<c-g>", ":!lazygit<cr>")
 -- keymap.set("n", "<F7>", "<cmd>lua require'dap'.step_into()<cr>", opt)
 -- keymap.set("n", "<F8>", "<cmd>lua require'dap'.step_out()<cr>", opt)
 -- keymap.set("n", "K", "<cmd>lua require'dapui'.eval()<cr>", opt)
-
--- auto save
-map("n", "<leader>as", ":ASToggle<CR>", opt)
 
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordText Visual" })
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordRead Visual" })

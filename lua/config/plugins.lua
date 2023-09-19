@@ -14,7 +14,6 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
 	require("config.plugins.gruvbox"),
-	require("config.plugins.init"),
 	require("config.plugins.comment"),
 	require("config.plugins.toggleterm"),
 	require("config.plugins.telescope"),
@@ -31,7 +30,6 @@ require("lazy").setup({
 	require("config.plugins.nvim-gpt"),
 	require("config.plugins.bookmarks"),
 	require("config.plugins.discord-presence"),
-	-- require("config.plugins.autosave"),
 
 	-- lsp setup
 	require("config.plugins.lsp.lspconfig"),

@@ -1,6 +1,6 @@
 return {
 	{
-		"RRethy/vim-illuminate",
+		"RRethy/vim-illuminate", -- highlight other uses of the word under the cursor
 		config = function()
 			-- default configuration
 			require("illuminate").configure({
