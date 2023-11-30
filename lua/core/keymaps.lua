@@ -1,6 +1,5 @@
 -- leader key to space
 vim.g.mapleader = ","
-
 local keymap = vim.keymap -- for conciseness
 local map = vim.api.nvim_set_keymap
 local opt = { noremap = true, silent = true }
@@ -21,13 +20,15 @@ keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>") -- list available 
 keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", { desc = "Find string under cursor in cwd" }) -- find string under cursor in current working directory
 
 keymap.set("n", "<leader>o", "<cmd>Telescope oldfiles<cr>") -- list recently opened files
-keymap.set("n", "<leader>k", "<cmd>Telescope live_grep initial_mode=insert<cr>") -- list strings in current working directory as you type
+-- keymap.set("n", "<leader>k", "<cmd>Telescope live_grep initial_mode=insert<cr>") -- list strings in current working directory as you type
 
 keymap.set("n", "ml", "<cmd>Telescope bookmarks list<cr>") -- bookmarks list
 
 -- lazygit
 keymap.set("n", "<c-g>", ":lazygit<cr>")
 
+-- terminal
+map("n", "<leader>t", "<cmd>ToggleTerm<cr>", opt)
 -- dap
 -- keymap.set(
 -- 	"n",
