@@ -54,3 +54,16 @@ vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWor
 -- nvim-gpt
 keymap.set("n", "<leader>g", ":ChatGPT<cr>")
 keymap.set("n", "<leader>c", ":ChatGPTCompleteCode<cr>")
+
+-- Trouble
+keymap.set("n", "<leader>xx", ":TroubleToggle<cr>")
+-- keymap.set("n", "<leader>xw", function()
+-- 	require("trouble").toggle("workspace_diagnostics")
+-- end)
+-- keymap.set("n", "<leader>xd", function()
+-- 	require("trouble").toggle("document_diagnostics")
+-- end)
+keymap.set("n", "<leader>xq", "TroubleToggle quickfix")
+-- keymap.set("n", "gR", function()
+-- 	require("trouble").toggle("lsp_references")
+-- end)
