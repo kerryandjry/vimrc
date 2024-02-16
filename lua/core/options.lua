@@ -1,7 +1,7 @@
 local opt = vim.opt -- for conciseness
 
-vim.g.encoding = "utf-8"
-opt.termencoding = "utf-8"
+vim.g.encoding = "utf-8, gbk, gb2312, gb18030, big5"
+opt.termencoding = "utf-8, gbk, gb2312, gb18030, big5"
 opt.syntax = "enable"
 -- line numbers
 opt.relativenumber = true -- show relative line numbers

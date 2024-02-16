@@ -32,7 +32,7 @@ require("lazy").setup({
 	require("config.plugins.yazi"),
 	require("config.plugins.flash"),
 	require("config.plugins.trouble"),
-	require("config.plugins.discord-presence"),
+	-- require("config.plugins.discord-presence"),
 
 	-- lsp setup
 	require("config.plugins.lsp.lspconfig"),

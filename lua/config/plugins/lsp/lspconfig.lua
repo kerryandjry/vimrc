@@ -121,7 +121,12 @@ return {
 		lspconfig["clangd"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			cmd = { "clangd", "--offset-encoding=utf-16" },
+			cmd = {
+				"clangd",
+				"--offset-encoding=utf-16",
+				"--query-driver=/opt/homebrew/bin/arm-none-eabi-g++",
+				"--query-driver=/opt/homebrew/bin/arm-none-eabi-g++",
+			},
 		})
 
 		lspconfig["cmake"].setup({
