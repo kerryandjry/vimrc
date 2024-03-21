@@ -30,8 +30,9 @@ require("lazy").setup({
 	require("config.plugins.nvim-gpt"),
 	require("config.plugins.bookmarks"),
 	require("config.plugins.yazi"),
-	require("config.plugins.flash"),
+	-- require("config.plugins.flash"),
 	require("config.plugins.trouble"),
+	require("config.plugins.barbar"),
 	-- require("config.plugins.discord-presence"),
 
 	-- lsp setup
