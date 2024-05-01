@@ -2,73 +2,58 @@ return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" },
 	dependencies = {
-		"jose-elias-alvarez/typescript.nvim",
 		"hrsh7th/cmp-nvim-lsp",
-		{
-			"smjonas/inc-rename.nvim",
-			config = true,
-		},
+		{ "antosha417/nvim-lsp-file-operations", config = true },
+		{ "folke/neodev.nvim", opts = {} },
 	},
 	config = function()
 		-- import lspconfig plugin
 		local lspconfig = require("lspconfig")
 
+		-- import mason_lspconfig plugin
+		local mason_lspconfig = require("mason-lspconfig")
+
 		-- import cmp-nvim-lsp plugin
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
-		-- import typescript plugin
-		local typescript = require("typescript")
-
 		local keymap = vim.keymap -- for conciseness
 
-		-- enable keybinds only for when lsp server available
-		local on_attach = function(client, bufnr)
-			-- keybind options
-			local opts = { noremap = true, silent = true, buffer = bufnr }
+		vim.api.nvim_create_autocmd("LspAttach", {
+			group = vim.api.nvim_create_augroup("UserLspConfig", {}),
+			callback = function(ev)
+				-- Buffer local mappings.
+				-- See `:help vim.lsp.*` for documentation on any of the below functions
+				local opts = { buffer = ev.buf, silent = true }
 
-			-- set keybinds
-			opts.desc = "Show LSP references"
-			keymap.set("n", "gr", "<cmd>Telescope lsp_references<CR>", opts) -- show definition, references
+				-- set keybinds
+				opts.desc = "Show LSP references"
+				keymap.set("n", "gr", "<cmd>Telescope lsp_references<CR>", opts) -- show definition, references
 
-			opts.desc = "Show LSP definitions"
-			keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts) -- show lsp definitions
+				opts.desc = "Show LSP definitions"
+				keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts) -- show lsp definitions
 
-			opts.desc = "Show LSP implementations"
-			keymap.set("n", "gD", "<cmd>Telescope lsp_implementations<CR>", opts) -- show lsp implementations
+				opts.desc = "Show LSP implementations"
+				keymap.set("n", "gD", "<cmd>Telescope lsp_implementations<CR>", opts) -- show lsp implementations
 
-			-- opts.desc = "See available code actions"
-			-- keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts) -- see available code actions, in visual mode will apply to selection
+				opts.desc = "Smart rename"
+				keymap.set("n", "gR", vim.lsp.buf.rename, opts) -- smart rename
 
-			opts.desc = "Smart rename"
-			keymap.set("n", "gR", ":IncRename ", opts) -- smart rename
+				opts.desc = "Show documentation for what is under cursor"
+				keymap.set("n", "K", vim.lsp.buf.hover, opts) -- show documentation for what is under cursor
 
-			-- opts.desc = "Show buffer diagnostics"
-			-- keymap.set("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", opts) -- show  diagnostics for file
+        opts.desc = "Show line diagnostics"
+        keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts) -- show diagnostics for line
 
-			opts.desc = "Go to previous diagnostic"
-			keymap.set("n", "[d", vim.diagnostic.goto_prev, opts) -- jump to previous diagnostic in buffer
+				opts.desc = "Go to previous diagnostic"
+				keymap.set("n", "<leader>p", vim.diagnostic.goto_prev, opts) -- jump to previous diagnostic in buffer
 
-			opts.desc = "Go to next diagnostic"
-			keymap.set("n", "]d", vim.diagnostic.goto_next, opts) -- jump to next diagnostic in buffer
+				opts.desc = "Go to next diagnostic"
+				keymap.set("n", "<leader>[", vim.diagnostic.goto_next, opts) -- jump to next diagnostic in buffer
 
-			-- opts.desc = "Show documentation for what is under cursor"
-			-- keymap.set("n", "K", vim.lsp.buf.hover, opts) -- show documentation for what is under cursor
-
-			-- opts.desc = "Restart LSP"
-			-- keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts) -- mapping to restart lsp if necessary
-
-			-- typescript specific keymaps (e.g. rename file and update imports)
-			if client.name == "tsserver" then
-				opts.desc = "Rename file and update file imports"
-				keymap.set("n", "<leader>rf", ":TypescriptRenameFile<CR>") -- rename file and update imports
-
-				opts.desc = "Rename file and update file imports"
-				keymap.set("n", "<leader>oi", ":TypescriptOrganizeImports<CR>", opts) -- organize imports (not in youtube nvim video)
-
-				opts.desc = "Remove unused imports"
-				keymap.set("n", "<leader>ru", ":TypescriptRemoveUnused<CR>", opts) -- remove unused variables (not in youtube nvim video)
-			end
-		end
+				-- opts.desc = "See available code actions"
+				-- keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts) -- see available code actions, in visual mode will apply to selection
+			end,
+		})
 
 		-- used to enable autocompletion (assign to every lsp server config)
 		local capabilities = cmp_nvim_lsp.default_capabilities()
@@ -80,79 +65,77 @@ return {
 			local hl = "DiagnosticSign" .. type
 			vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
 		end
-		-- configure typescript server with plugin
-		typescript.setup({
-			server = {
-				capabilities = capabilities,
-				on_attach = on_attach,
-			},
-		})
 
-		-- configure css server
-		lspconfig["cssls"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-		})
-
-		lspconfig["marksman"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-		})
-
-		-- configure graphql language server
-		lspconfig["graphql"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			filetypes = { "graphql", "gql", "svelte", "typescriptreact", "javascriptreact" },
-		})
-
-		-- configure emmet language server
-		lspconfig["emmet_ls"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			filetypes = { "html", "typescriptreact", "javascriptreact", "css", "sass", "scss", "less", "svelte" },
-		})
-
-		lspconfig["pyright"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-		})
-
-		lspconfig["clangd"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			cmd = {
-				"clangd",
-				"--offset-encoding=utf-16",
-				"--query-driver=/opt/homebrew/bin/arm-none-eabi-g++",
-				"--query-driver=/opt/homebrew/bin/arm-none-eabi-g++",
-			},
-		})
-
-		lspconfig["cmake"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-		})
-
-		-- configure lua server (with special settings)
-		lspconfig["lua_ls"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			settings = { -- custom settings for lua
-				Lua = {
-					-- make the language server recognize "vim" global
-					diagnostics = {
-						globals = { "vim" },
+		mason_lspconfig.setup_handlers({
+			-- default handler for installed servers
+			function(server_name)
+				lspconfig[server_name].setup({
+					capabilities = capabilities,
+				})
+			end,
+			["clangd"] = function()
+				lspconfig["clangd"].setup({
+					capabilities = capabilities,
+					cmd = {
+						"clangd",
+						"--offset-encoding=utf-16",
+						"--query-driver=/opt/homebrew/bin/arm-none-eabi-g++",
+						"--query-driver=/opt/homebrew/bin/arm-none-eabi-g++",
 					},
-					workspace = {
-						-- make language server aware of runtime files
-						library = {
-							[vim.fn.expand("$VIMRUNTIME/lua")] = true,
-							[vim.fn.stdpath("config") .. "/lua"] = true,
+					filetypes = { "c", "cpp" },
+				})
+			end,
+			["cmake"] = function()
+				lspconfig["cmake"].setup({
+					capabilities = capabilities,
+					filetypes = { "cmake" },
+				})
+			end,
+			["lua_ls"] = function()
+				lspconfig["lua_ls"].setup({
+					capabilities = capabilities,
+					settings = { -- custom settings for lua
+						Lua = {
+							-- make the language server recognize "vim" global
+							diagnostics = {
+								globals = { "vim" },
+							},
+              hint = { enable = true },
+							workspace = {
+								-- make language server aware of runtime files
+								library = {
+									[vim.fn.expand("$VIMRUNTIME/lua")] = true,
+									[vim.fn.stdpath("config") .. "/lua"] = true,
+								},
+							},
 						},
 					},
-				},
-			},
+				})
+			end,
+			["pyright"] = function()
+				lspconfig["pyright"].setup({
+					capabilities = capabilities,
+					filetypes = { "python" },
+				})
+			end,
+			["marksman"] = function()
+				lspconfig["marksman"].setup({
+					capabilities = capabilities,
+					filetypes = { "markdown" },
+				})
+			end,
+			["rust_analyzer"] = function()
+				lspconfig["rust_analyzer"].setup({
+					filetypes = { "rust" },
+					capabilities = capabilities,
+          root_dir = lspconfig.util.root_pattern("Cargo.toml"),
+          setting = {
+            ["rust-analyzer"] = {
+              cargo = { allFeatures = true, },
+              },
+            },
+				})
+			end,
 		})
 	end,
 }

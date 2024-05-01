@@ -11,6 +11,8 @@ return {
 			cmd = "lazygit",
 			direction = "float",
 		})
+
+    -- lazygit
 		function lazygit_toggle()
 			lazygit:toggle()
 		end
@@ -20,6 +22,8 @@ return {
 			cmd = "yazi",
 			direction = "float",
 		})
+
+    -- yazi
 		function yazi_toggle()
 			yazi:toggle()
 		end

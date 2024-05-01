@@ -1,4 +1,4 @@
--- leader key to space
+-- leader key to spaceto
 vim.g.mapleader = ","
 local keymap = vim.keymap -- for conciseness
 local opt = { noremap = true, silent = true }
@@ -28,8 +28,8 @@ keymap.set("n", "ml", "<cmd>Telescope bookmarks list<cr>") -- bookmarks list
 keymap.set("n", "<c-g>", ":lazygit<cr>")
 
 -- nvim-gpt
-keymap.set("n", "<c-c>", ":ChatGPT<cr>")
-keymap.set("n", "<leader>c", "<cmd>ChatGPTCompleteCode<cr>")
+-- keymap.set("n", "<c-c>", ":ChatGPT<cr>")
+-- keymap.set("n", "<leader>c", "<cmd>ChatGPTCompleteCode<cr>")
 
 keymap.set("n", "<leader>xx", ":TroubleToggle<cr>")
 keymap.set("n", "<leader>xq", "TroubleToggle quickfix")
@@ -51,6 +51,7 @@ keymap.set("n", "<leader>4", "<cmd>BufferGoto 4<cr>", opt)
 keymap.set("n", "<leader>5", "<cmd>BufferGoto 5<cr>", opt)
 keymap.set("n", "<leader>6", "<cmd>BufferGoto 6<cr>", opt)
 keymap.set("n", "<leader>7", "<cmd>BufferGoto 7<cr>", opt)
+keymap.set("n", "<leader>w", "<cmd>BufferClose<cr>", opt)
 
 -- dap
 -- keymap.set(

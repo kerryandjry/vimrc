@@ -13,14 +13,15 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-	require("config.plugins.gruvbox"),
+	-- require("config.plugins.gruvbox"),
+	require("config.plugins.tokyonight"),
 	require("config.plugins.comment"),
 	require("config.plugins.toggleterm"),
 	require("config.plugins.telescope"),
-	require("config.plugins.snippets"),
 	require("config.plugins.treesitter"),
 	require("config.plugins.autopairs"),
 	require("config.plugins.lualine"),
+	require("config.plugins.luasnip"),
 	require("config.plugins.copilot"),
 	require("config.plugins.tree"),
 	require("config.plugins.surround"),
@@ -30,18 +31,19 @@ require("lazy").setup({
 	require("config.plugins.nvim-gpt"),
 	require("config.plugins.bookmarks"),
 	require("config.plugins.yazi"),
-	-- require("config.plugins.flash"),
+	-- require("config.plugins.dashboard"),
 	require("config.plugins.trouble"),
 	require("config.plugins.barbar"),
-	-- require("config.plugins.discord-presence"),
+	require("config.plugins.bigfile"),
+	require("config.plugins.guard"),
 
 	-- lsp setup
 	require("config.plugins.lsp.lspconfig"),
-	require("config.plugins.lsp.null-ls"),
 	require("config.plugins.lsp.mason"),
-	require("config.plugins.lsp.lspsaga"),
 
-	-- TODO: add dap
+	-- dap
+	-- require("config.plugins.dap.dap"),
+	-- require("config.plugins.dap.mason-nvim-dap"),
 
 	checker = {
 		enable = true,
