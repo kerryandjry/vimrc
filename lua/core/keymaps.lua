@@ -15,18 +15,6 @@ vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWor
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordRead Visual" })
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordWrite Visual" })
 
--- telescope
-keymap.set("n", "<leader>f", "<cmd>Telescope find_files<cr>") -- find files within current working directory, respects .gitignore
-keymap.set("n", "<leader>s", "<cmd>Telescope live_grep<cr>") -- find string in current working directory as you type
-keymap.set("n", "<leader>o", "<cmd>Telescope oldfiles<cr>") -- list recently opened files
-keymap.set("n", "ml", "<cmd>Telescope bookmarks list<cr>") -- bookmarks list
--- keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>") -- find string under cursor in current working directory
--- keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>") -- list open buffers in current neovim instance
--- keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>") -- list available help tags
-
--- lazygit
-keymap.set("n", "<c-g>", ":lazygit<cr>")
-
 -- nvim-gpt
 -- keymap.set("n", "<c-c>", ":ChatGPT<cr>")
 -- keymap.set("n", "<leader>c", "<cmd>ChatGPTCompleteCode<cr>")
