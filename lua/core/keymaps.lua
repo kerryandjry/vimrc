@@ -15,23 +15,39 @@ vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWor
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordRead Visual" })
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordWrite Visual" })
 
--- nvim-gpt
--- keymap.set("n", "<c-c>", ":ChatGPT<cr>")
--- keymap.set("n", "<leader>c", "<cmd>ChatGPTCompleteCode<cr>")
+-- automactic formatic when save
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*",
+  callback = function()
+    vim.lsp.buf.format({ async = false })
+  end,
+})
 
-keymap.set("n", "<leader>xx", ":TroubleToggle<cr>")
-keymap.set("n", "<leader>xq", "TroubleToggle quickfix")
--- keymap.set("n", "<leader>xw", function()
--- 	require("trouble").toggle("workspace_diagnostics")
--- end)
--- keymap.set("n", "<leader>xd", function()
--- 	require("trouble").toggle("document_diagnostics")
--- end)
--- keymap.set("n", "gR", function()
--- 	require("trouble").toggle("lsp_references")
--- end)
+vim.keymap.set('n', '<F3>', function()
+  local ft = vim.bo.filetype
+  local filename = vim.fn.expand('%:p')
+  local build_dir = "build"
+  local exe = build_dir .. "/main"
 
--- barbar
+  if ft == "cpp" then
+    -- 自動 build 並執行
+    vim.cmd("w")                 -- 先儲存
+    vim.fn.mkdir(build_dir, "p") -- 確保有 build 資料夾
+    vim.cmd("!cmake -S . -B " .. build_dir .. " && cmake --build " .. build_dir .. " && " .. exe)
+  elseif ft == "python" then
+    vim.cmd("w")
+    vim.cmd("!python3 " .. filename)
+  else
+    print("F3: 不支援的檔案類型")
+  end
+end, { noremap = true, silent = true })
+-- del default keymap
+vim.keymap.del('n', 'gri')
+vim.keymap.del('n', 'grr')
+vim.keymap.del('n', 'gra')
+vim.keymap.del('n', 'grn')
+
+-- barbar --
 keymap.set("n", "<leader>1", "<cmd>BufferGoto 1<cr>", opt)
 keymap.set("n", "<leader>2", "<cmd>BufferGoto 2<cr>", opt)
 keymap.set("n", "<leader>3", "<cmd>BufferGoto 3<cr>", opt)
@@ -39,8 +55,12 @@ keymap.set("n", "<leader>4", "<cmd>BufferGoto 4<cr>", opt)
 keymap.set("n", "<leader>5", "<cmd>BufferGoto 5<cr>", opt)
 keymap.set("n", "<leader>6", "<cmd>BufferGoto 6<cr>", opt)
 keymap.set("n", "<leader>7", "<cmd>BufferGoto 7<cr>", opt)
-keymap.set("n", "<leader>w", "<cmd>BufferClose<cr>", opt)
+keymap.set("n", "<leader>d", "<cmd>BufferClose<cr>", opt)
 
+-- nvim-gpt
+-- keymap.set("n", "<c-c>", ":ChatGPT<cr>")
+-- keymap.set("n", "<leader>c", "<cmd>ChatGPTCompleteCode<cr>")
+--
 -- dap
 -- keymap.set(
 -- 	"n",

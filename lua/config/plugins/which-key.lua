@@ -1,18 +1,27 @@
 return {
-	"folke/which-key.nvim",
-	event = "VeryLazy",
-	init = function()
-		vim.o.timeout = true
-		vim.o.timeoutlen = 0
-	end,
-	opts = {
-		-- your configuration comes here
-		-- or leave it empty to use the default settings
-		-- refer to the configuration section below
-		icons = {
-			breadcrumb = "»", -- symbol used in the command line area that shows your active key combo
-			separator = "➜", -- symbol used between a key and it's label
-			group = "+", -- symbol prepended to a group
-		},
-	},
+  "folke/which-key.nvim",
+  event = "VeryLazy",
+  init = function()
+    vim.o.timeout = true
+    vim.o.timeoutlen = 0
+  end,
+  opts = {
+    icons = {
+      breadcrumb = "»",
+      separator = "➜",
+      group = "+",
+    },
+  },
+  config = function()
+    local wk = require("which-key")
+    wk.add({
+      { "<leader>1", hidden = true },
+      { "<leader>2", hidden = true },
+      { "<leader>3", hidden = true },
+      { "<leader>4", hidden = true },
+      { "<leader>5", hidden = true },
+      { "<leader>6", hidden = true },
+      { "<leader>7", hidden = true },
+    })
+  end,
 }

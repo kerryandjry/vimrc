@@ -1,31 +1,31 @@
 vim.lsp.enable({
-    "clangd_ls",
-    "lua_ls",
-    "python_ls"
+  "clangd_ls",
+  "lua_ls",
+  "python_ls"
 })
 
 vim.diagnostic.config({
-    virtual_lines = true,
-    virtual_text = true,
-    underline = true,
-    update_in_insert = false,
-    severity_sort = true,
-    float = {
-        border = "rounded",
-        source = true,
+  virtual_lines = true,
+  virtual_text = true,
+  underline = true,
+  update_in_insert = false,
+  severity_sort = true,
+  float = {
+    border = "rounded",
+    source = true,
+  },
+  signs = {
+    text = {
+      [vim.diagnostic.severity.ERROR] = "󰅚 ",
+      [vim.diagnostic.severity.WARN] = "󰀪 ",
+      [vim.diagnostic.severity.INFO] = "󰋽 ",
+      [vim.diagnostic.severity.HINT] = "󰌶 ",
     },
-    signs = {
-        text = {
-            [vim.diagnostic.severity.ERROR] = "󰅚 ",
-            [vim.diagnostic.severity.WARN] = "󰀪 ",
-            [vim.diagnostic.severity.INFO] = "󰋽 ",
-            [vim.diagnostic.severity.HINT] = "󰌶 ",
-        },
-        numhl = {
-            [vim.diagnostic.severity.ERROR] = "ErrorMsg",
-            [vim.diagnostic.severity.WARN] = "WarningMsg",
-        },
+    numhl = {
+      [vim.diagnostic.severity.ERROR] = "ErrorMsg",
+      [vim.diagnostic.severity.WARN] = "WarningMsg",
     },
+  },
 })
 
 -- Define LSP-related keymaps
@@ -51,7 +51,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
       -- Mimic tmux formula: 8 * width - 20 * height
       local value = 8 * width - 20 * height
       if value < 0 then
-        vim.cmd 'split' -- vertical space is more: horizontal split
+        vim.cmd 'split'  -- vertical space is more: horizontal split
       else
         vim.cmd 'vsplit' -- horizontal space is more: vertical split
       end
@@ -63,16 +63,16 @@ vim.api.nvim_create_autocmd('LspAttach', {
       require('snacks').picker.lsp_references()
     end, { buffer = event.buf, desc = 'LSP: Goto References' })
 
-    vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = event.buf, desc = 'Lsp Action' })
-    vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { buffer = event.buf, desc = 'LSP: Rename' })
+    -- vim.keymap.set('n', '<leader>a', vim.lsp.buf.code_action, { buffer = event.buf, desc = 'Lsp Action' })
+    vim.keymap.set('n', '<leader>r', vim.lsp.buf.rename, { buffer = event.buf, desc = 'LSP: Rename' })
 
     -- Diagnostics
-    vim.keymap.set('n', '<leader>ld', function()
-      vim.diagnostic.open_float { source = true }
-    end, { buffer = event.buf, desc = 'LSP: Show Diagnostic' })
+    -- vim.keymap.set('n', '<leader>d', function()
+    --   vim.diagnostic.open_float { source = true }
+    -- end, { buffer = event.buf, desc = 'LSP: Show Diagnostic' })
     vim.keymap.set(
       'n',
-      '<leader>td',
+      '<leader>t',
       (function()
         local diag_status = 1 -- 1 is show; 0 is hide
         return function()
@@ -88,19 +88,15 @@ vim.api.nvim_create_autocmd('LspAttach', {
       { buffer = event.buf, desc = 'LSP: Toggle diagnostics display' }
     )
 
-    -- folding
     local client = vim.lsp.get_client_by_id(event.data.client_id)
+    -- inlay suppoer
+    if client and client.supports_method 'textDocument/inlayHint' then
+      vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
+    end
+    -- folding
     if client and client.supports_method 'textDocument/foldingRange' then
       local win = vim.api.nvim_get_current_win()
       vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
-    end
-
-    -- Inlay hint
-    if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
-      -- vim.lsp.inlay_hint.enable()
-      vim.keymap.set('n', '<leader>th', function()
-        vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
-      end, { buffer = event.buf, desc = 'LSP: Toggle Inlay Hints' })
     end
 
     -- Highlight words under cursor
@@ -129,4 +125,3 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
   end,
 })
-
