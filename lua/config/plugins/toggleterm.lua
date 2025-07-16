@@ -1,32 +1,23 @@
 return {
-	"akinsho/toggleterm.nvim",
-	version = "*",
-	config = function()
-		require("toggleterm").setup({
-			size = 10,
-			open_mapping = [[<F2>]],
-		})
-		local Terminal = require("toggleterm.terminal").Terminal
-		local lazygit = Terminal:new({
-			cmd = "lazygit",
-			direction = "float",
-		})
+  "akinsho/toggleterm.nvim",
+  version = "*",
+  config = function()
+    require("toggleterm").setup({
+      size = 10,
+      open_mapping = [[<F2>]],
+    })
+    local Terminal = require("toggleterm.terminal").Terminal
+    local lazygit = Terminal:new({
+      cmd = "lazygit",
+      direction = "float",
+    })
 
     -- lazygit
-		function lazygit_toggle()
-			lazygit:toggle()
-		end
-		vim.api.nvim_set_keymap("n", "<c-g>", "<Cmd>lua lazygit_toggle()<CR>", { noremap = true, silent = true })
+    function lazygit_toggle()
+      lazygit:toggle()
+    end
 
-		local yazi = Terminal:new({
-			cmd = "yazi",
-			direction = "float",
-		})
-
-    -- yazi
-		function yazi_toggle()
-			yazi:toggle()
-		end
-		vim.api.nvim_set_keymap("n", "<c-y>", "<Cmd>lua yazi_toggle()<CR>", { noremap = true, silent = true })
-	end,
+    vim.api.nvim_set_keymap("n", "<leader>g", "<Cmd>lua lazygit_toggle()<CR>",
+      { noremap = true, silent = true, desc = "Lazygit" })
+  end,
 }

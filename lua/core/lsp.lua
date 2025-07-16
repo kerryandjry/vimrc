@@ -64,7 +64,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end, { buffer = event.buf, desc = 'LSP: Goto References' })
 
     -- vim.keymap.set('n', '<leader>a', vim.lsp.buf.code_action, { buffer = event.buf, desc = 'Lsp Action' })
-    vim.keymap.set('n', '<leader>r', vim.lsp.buf.rename, { buffer = event.buf, desc = 'LSP: Rename' })
+    vim.keymap.set('n', 'gR', vim.lsp.buf.rename, { buffer = event.buf, desc = 'LSP: Rename' })
 
     -- Diagnostics
     -- vim.keymap.set('n', '<leader>d', function()
