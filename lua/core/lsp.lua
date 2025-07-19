@@ -90,17 +90,17 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
     local client = vim.lsp.get_client_by_id(event.data.client_id)
     -- inlay suppoer
-    if client and client.supports_method 'textDocument/inlayHint' then
+    if client and client:supports_method 'textDocument/inlayHint' then
       vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
     end
     -- folding
-    if client and client.supports_method 'textDocument/foldingRange' then
+    if client and client:supports_method 'textDocument/foldingRange' then
       local win = vim.api.nvim_get_current_win()
       vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
     end
 
     -- Highlight words under cursor
-    if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) and vim.bo.filetype ~= 'bigfile' then
+    if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) and vim.bo.filetype ~= 'bigfile' then
       local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
       vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
         buffer = event.buf,
