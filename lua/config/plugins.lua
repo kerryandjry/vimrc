@@ -21,7 +21,7 @@ require("lazy").setup({
   require("config.plugins.autopairs"),
   require("config.plugins.lualine"),
   require("config.plugins.luasnip"),
-  -- require("config.plugins.copilot"),
+  require("config.plugins.copilot"),
   require("config.plugins.tree"),
   require("config.plugins.surround"),
   require("config.plugins.autocomplete"),
