@@ -1,12 +1,13 @@
 vim.lsp.enable({
   "clangd_ls",
   "lua_ls",
-  "python_ls"
+  "python_ls",
+  "cmake_ls"
 })
 
 vim.diagnostic.config({
   virtual_lines = true,
-  virtual_text = true,
+  virtual_text = false,
   underline = true,
   update_in_insert = false,
   severity_sort = true,

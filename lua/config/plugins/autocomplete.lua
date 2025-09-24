@@ -21,7 +21,6 @@ return {
         end,
       },
       mapping = cmp.mapping.preset.insert({
-        ["<Space>"] = cmp.mapping.complete(), -- show completion suggestions
         ["<CR>"] = cmp.mapping(function(fallback)
           if cmp.visible() then
             cmp.confirm({ select = false })
