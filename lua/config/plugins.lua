@@ -28,6 +28,7 @@ require("lazy").setup({
   require("config.plugins.snacks"),
   require("config.plugins.barbar"),
   require("config.plugins.codecompanion"),
+  require("config.plugins.markdown"),
 
   checker = {
     enable = true,
