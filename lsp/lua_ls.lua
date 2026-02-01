@@ -15,14 +15,19 @@ return {
 		"selene.yml",
 		"stylua.toml",
 	},
-  settings = {
-	    Lua = {
-	      diagnostics = {
-	      disable = { "missing-parameters", "missing-fields" },
-	        },
-	     },
-	 },
-
+	settings = {
+		Lua = {
+			runtime = { version = "LuaJIT" },
+			workspace = {
+				library = vim.api.nvim_get_runtime_file("", true),
+				checkThirdParty = false,
+			},
+			diagnostics = {
+				globals = { "vim" },
+				disable = { "missing-parameters", "missing-fields" },
+			},
+		},
+	},
 	single_file_support = true,
 	log_level = vim.lsp.protocol.MessageType.Warning,
 }

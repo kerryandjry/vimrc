@@ -79,10 +79,10 @@ vim.api.nvim_create_autocmd('LspAttach', {
         return function()
           if diag_status == 1 then
             diag_status = 0
-            vim.diagnostic.config { underline = false, virtual_text = false, signs = false, update_in_insert = false }
+            vim.diagnostic.config { underline = false, virtual_lines = false, virtual_text = false, signs = false, update_in_insert = false }
           else
             diag_status = 1
-            vim.diagnostic.config { underline = true, virtual_text = true, signs = true, update_in_insert = true }
+            vim.diagnostic.config { underline = true, virtual_lines = true, virtual_text = false, signs = true, update_in_insert = false }
           end
         end
       end)(),
