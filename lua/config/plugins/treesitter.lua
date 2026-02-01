@@ -22,6 +22,7 @@ return {
 					"vim",
 					"cpp",
 					"python",
+					"yaml",
 				},
 				highlight = {
 					enable = true,

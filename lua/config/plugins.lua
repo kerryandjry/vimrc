@@ -19,9 +19,6 @@ require("lazy").setup({
   require("config.plugins.treesitter"),
   require("config.plugins.autopairs"),
   require("config.plugins.lualine"),
-  require("config.plugins.luasnip"),
-  require("config.plugins.copilot"),
-  require("config.plugins.tree"),
   -- require("config.plugins.surround"),
   require("config.plugins.autocomplete"),
   require("config.plugins.illuminate"),
@@ -29,8 +26,8 @@ require("lazy").setup({
   require("config.plugins.yazi"),
   require("config.plugins.lazygit"),
   require("config.plugins.snacks"),
-  -- require("config.plugins.barbar"),
-  require("config.plugins.avante"),
+  require("config.plugins.barbar"),
+  require("config.plugins.codecompanion"),
 
   checker = {
     enable = true,

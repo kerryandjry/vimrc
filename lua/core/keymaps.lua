@@ -8,7 +8,7 @@ keymap.set("n", "Q", "ZQ")
 
 keymap.set("n", "<F1>", ":w<cr>")
 
-keymap.set("n", "<F9>", ":NvimTreeToggle<cr>")
+keymap.set("n", "<F9>", "<cmd>Yazi<cr>", { desc = "Yazi" })
 
 -- IlluminatedWord
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordText Visual" })
@@ -55,7 +55,18 @@ keymap.set("n", "<leader>4", "<cmd>BufferGoto 4<cr>", opt)
 keymap.set("n", "<leader>5", "<cmd>BufferGoto 5<cr>", opt)
 keymap.set("n", "<leader>6", "<cmd>BufferGoto 6<cr>", opt)
 keymap.set("n", "<leader>7", "<cmd>BufferGoto 7<cr>", opt)
-keymap.set("n", "<leader>d", "<cmd>BufferClose<cr>", opt)
+keymap.set("n", "<leader>d", function()
+  -- 計算有多少個已載入的普通 buffer
+  local buffers = vim.tbl_filter(function(buf)
+    return vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buflisted
+  end, vim.api.nvim_list_bufs())
+
+  if #buffers <= 1 then
+    vim.cmd("quit!")
+  else
+    vim.cmd("BufferClose!")
+  end
+end, { noremap = true, silent = true, desc = "close buf" })
 
 -- nvim-gpt
 -- keymap.set("n", "<c-c>", ":ChatGPT<cr>")
