@@ -13,7 +13,6 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-  -- require("config.plugins.gruvbox"),
   require("config.plugins.tokyonight"),
   require("config.plugins.comment"),
   require("config.plugins.treesitter"),
@@ -27,14 +26,16 @@ require("lazy").setup({
   require("config.plugins.lazygit"),
   require("config.plugins.snacks"),
   require("config.plugins.barbar"),
-  require("config.plugins.codecompanion"),
   require("config.plugins.markdown"),
-
+}, {
   checker = {
     enable = true,
     notify = false,
   },
   change_detection = {
     notify = false,
+  },
+  rocks = {
+    enabled = false,
   },
 })

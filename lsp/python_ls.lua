@@ -7,7 +7,7 @@
 local function set_python_path(path)
   local clients = vim.lsp.get_clients {
     bufnr = vim.api.nvim_get_current_buf(),
-    name = 'pyright',
+    name = 'python_ls',
   }
   for _, client in ipairs(clients) do
     if client.settings then
@@ -17,6 +17,22 @@ local function set_python_path(path)
     end
     client.notify('workspace/didChangeConfiguration', { settings = nil })
   end
+end
+
+local function find_python(root_dir)
+  local candidates = {}
+  if vim.env.VIRTUAL_ENV then
+    table.insert(candidates, vim.env.VIRTUAL_ENV .. '/bin/python')
+  end
+  for _, directory in ipairs({ '.venv', 'venv' }) do
+    table.insert(candidates, root_dir .. '/' .. directory .. '/bin/python')
+  end
+  for _, path in ipairs(candidates) do
+    if vim.fn.executable(path) == 1 then
+      return path
+    end
+  end
+  return vim.fn.exepath('python3') ~= '' and vim.fn.exepath('python3') or 'python3'
 end
 
 return {
@@ -40,6 +56,9 @@ return {
       },
     },
   },
+  before_init = function(_, config)
+    config.settings.python.pythonPath = find_python(config.root_dir or vim.fn.getcwd())
+  end,
   on_attach = function(client, bufnr)
     vim.api.nvim_buf_create_user_command(bufnr, 'LspPyrightOrganizeImports', function()
       client:exec_cmd({

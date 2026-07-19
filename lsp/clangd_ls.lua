@@ -14,7 +14,7 @@
 -- https://clangd.llvm.org/extensions.html#switch-between-sourceheader
 local function switch_source_header(bufnr)
   local method_name = 'textDocument/switchSourceHeader'
-  local client = vim.lsp.get_clients({ bufnr = bufnr, name = 'clangd' })[1]
+  local client = vim.lsp.get_clients({ bufnr = bufnr, name = 'clangd_ls' })[1]
   if not client then
     return vim.notify(('method %s is not supported by any servers active on the current buffer'):format(method_name))
   end
@@ -33,7 +33,7 @@ end
 
 local function symbol_info()
   local bufnr = vim.api.nvim_get_current_buf()
-  local clangd_client = vim.lsp.get_clients({ bufnr = bufnr, name = 'clangd' })[1]
+  local clangd_client = vim.lsp.get_clients({ bufnr = bufnr, name = 'clangd_ls' })[1]
   if not clangd_client or not clangd_client.supports_method 'textDocument/symbolInfo' then
     return vim.notify('Clangd client not found', vim.log.levels.ERROR)
   end
@@ -61,7 +61,7 @@ end
 ---@field offsetEncoding? string
 
 return {
-  cmd = { 'clangd' },
+  cmd = { 'clangd', '--background-index', '--clang-tidy', '--completion-style=detailed' },
   filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
   root_markers = {
     '.clangd',

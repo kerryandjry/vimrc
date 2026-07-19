@@ -1,0 +1,32 @@
+# Interactive bash settings. Keep machine-specific secrets in ~/.bashrc outside
+# the portable-nvim managed block.
+case $- in *i*) ;; *) return ;; esac
+
+HISTCONTROL=ignoreboth:erasedups
+HISTSIZE=50000
+HISTFILESIZE=10000
+shopt -s histappend checkwinsize 2>/dev/null || true
+
+_portable_env="${NVIM_ENV_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}/nvim-portable/env}"
+if [[ -r "$_portable_env/etc/profile.d/bash_completion.sh" ]]; then
+  . "$_portable_env/etc/profile.d/bash_completion.sh"
+elif [[ -r "$_portable_env/share/bash-completion/bash_completion" ]]; then
+  . "$_portable_env/share/bash-completion/bash_completion"
+fi
+unset _portable_env
+
+if command -v zoxide >/dev/null 2>&1 && ! declare -F __zoxide_z >/dev/null; then
+  eval "$(zoxide init bash)"
+fi
+
+if command -v dircolors >/dev/null 2>&1; then
+  eval "$(dircolors -b 2>/dev/null)"
+fi
+
+# Use the managed zsh as the interactive shell without requiring sudo or
+# changing /etc/shells. Set PORTABLE_NVIM_KEEP_BASH=1 to start Bash explicitly.
+if [[ -z ${PORTABLE_NVIM_KEEP_BASH:-} && -z ${BASH_EXECUTION_STRING:-} && -t 0 && -t 1 ]] \
+  && command -v zsh >/dev/null 2>&1; then
+  export SHELL="$(command -v zsh)"
+  exec "$SHELL" -l
+fi

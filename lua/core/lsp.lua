@@ -1,8 +1,38 @@
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+local has_cmp, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+if has_cmp then
+  capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+end
+-- File watching can exhaust descriptor limits on macOS and large clusters.
+-- Servers still receive open/change/save notifications for edited buffers.
+if capabilities.workspace then
+  capabilities.workspace.didChangeWatchedFiles = nil
+end
+
+local default_register_capability = vim.lsp.handlers["client/registerCapability"]
+local function register_capability_without_watchers(err, result, ctx, config)
+  if result and result.registrations then
+    result = vim.deepcopy(result)
+    result.registrations = vim.tbl_filter(function(registration)
+      return registration.method ~= "workspace/didChangeWatchedFiles"
+    end, result.registrations)
+  end
+  return default_register_capability(err, result, ctx, config)
+end
+
+vim.lsp.config("*", {
+  capabilities = capabilities,
+  handlers = {
+    ["client/registerCapability"] = register_capability_without_watchers,
+  },
+})
+
 vim.lsp.enable({
   "clangd_ls",
   "lua_ls",
   "python_ls",
-  "cmake_ls"
+  "ruff_ls",
+  "cmake_ls",
 })
 
 vim.diagnostic.config({
@@ -27,6 +57,36 @@ vim.diagnostic.config({
       [vim.diagnostic.severity.WARN] = "WarningMsg",
     },
   },
+})
+
+local function formatting_client(client, filetype)
+  if filetype == "python" then
+    return client.name == "ruff_ls"
+  end
+  if vim.tbl_contains({ "c", "cpp", "objc", "objcpp", "cuda" }, filetype) then
+    return client.name == "clangd_ls"
+  end
+  return client:supports_method("textDocument/formatting")
+end
+
+local function format_buffer(bufnr)
+  bufnr = bufnr or 0
+  local filetype = vim.bo[bufnr].filetype
+  vim.lsp.buf.format({
+    bufnr = bufnr,
+    async = false,
+    timeout_ms = 3000,
+    filter = function(client)
+      return formatting_client(client, filetype)
+    end,
+  })
+end
+
+vim.api.nvim_create_autocmd("BufWritePre", {
+  group = vim.api.nvim_create_augroup("lsp-format-on-save", { clear = true }),
+  callback = function(event)
+    format_buffer(event.buf)
+  end,
 })
 
 -- Define LSP-related keymaps

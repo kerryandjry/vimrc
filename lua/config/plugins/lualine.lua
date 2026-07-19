@@ -125,8 +125,36 @@ return {
       cond = conditions.buffer_not_empty,
     })
 
+    local function shorten_path(path, max_len)
+      if not path or path == "" then
+        return ""
+      end
+      if #path <= max_len then
+        return path
+      end
+      local filename = vim.fn.fnamemodify(path, ":t")
+      local dir = vim.fn.fnamemodify(path, ":h")
+      if dir == "." or dir == "" then
+        return filename
+      end
+      local remaining = max_len - #filename - 4 -- for ".../"
+      if remaining <= 0 then
+        return filename
+      end
+      local prefix = dir:sub(1, remaining)
+      return prefix .. ".../" .. filename
+    end
+
+    local function format_path()
+      local path = vim.fn.expand("%:~:.")
+      if path == "" then
+        return ""
+      end
+      return shorten_path(path, 50)
+    end
+
     ins_left({
-      "filename",
+      format_path,
       cond = conditions.buffer_not_empty,
       color = { fg = colors.magenta, gui = "bold" },
     })
@@ -154,22 +182,28 @@ return {
       end,
     })
 
+    local function get_lsp_name()
+      local buf_ft = vim.api.nvim_buf_get_option(0, "filetype")
+      local clients = vim.lsp.get_clients()
+      if next(clients) == nil then
+        return nil
+      end
+      for _, client in ipairs(clients) do
+        local filetypes = client.config.filetypes
+        if filetypes and vim.fn.index(filetypes, buf_ft) ~= -1 then
+          return client.name
+        end
+      end
+      return nil
+    end
+
     ins_left({
       -- Lsp server name .
       function()
-        local msg = "No Active Lsp"
-        local buf_ft = vim.api.nvim_buf_get_option(0, "filetype")
-        local clients = vim.lsp.get_clients()
-        if next(clients) == nil then
-          return msg
-        end
-        for _, client in ipairs(clients) do
-          local filetypes = client.config.filetypes
-          if filetypes and vim.fn.index(filetypes, buf_ft) ~= -1 then
-            return client.name
-          end
-        end
-        return msg
+        return get_lsp_name() or ""
+      end,
+      cond = function()
+        return get_lsp_name() ~= nil
       end,
       icon = " LSP:",
       color = { fg = "#ffffff", gui = "bold" },
@@ -180,13 +214,6 @@ return {
       "o:encoding",       -- option component same as &encoding in viml
       fmt = string.upper, -- I'm not sure why it's upper case either ;)
       cond = conditions.hide_in_width,
-      color = { fg = colors.green, gui = "bold" },
-    })
-
-    ins_right({
-      "fileformat",
-      fmt = string.upper,
-      icons_enabled = false, -- I think icons are cool but Eviline doesn't have them. sigh
       color = { fg = colors.green, gui = "bold" },
     })
 

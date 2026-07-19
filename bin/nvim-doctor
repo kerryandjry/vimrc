@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -u
+
+failed=0
+check() {
+  local name=$1 required=${2:-yes}
+  if command -v "$name" >/dev/null 2>&1; then
+    printf '\033[32mOK\033[0m   %-24s %s\n' "$name" "$(command -v "$name")"
+  elif [[ "$required" == yes ]]; then
+    printf '\033[31mMISS\033[0m %-24s required\n' "$name"
+    failed=1
+  else
+    printf '\033[33mSKIP\033[0m %-24s optional\n' "$name"
+  fi
+}
+
+printf 'Neovim portable environment\n\n'
+check nvim
+check git
+check rg
+check fd
+check cc
+check clang++
+check zsh
+check tree-sitter
+check lazygit no
+check yazi no
+check clangd no
+check lua-language-server no
+check pyright-langserver no
+check ruff no
+check cmake-language-server no
+check starship no
+check trash no
+check codex no
+check claude no
+
+if command -v nvim >/dev/null 2>&1; then
+  printf '\n%s\n' "$(nvim --version | head -n 1)"
+  printf 'config: %s\n' "$(nvim --clean --headless -i NONE "+lua io.stdout:write(vim.fn.stdpath('config'))" +qa 2>/dev/null)"
+  nvim --clean --headless "+lua if vim.fn.has('nvim-0.12') ~= 1 then vim.cmd('cquit') end" +qa \
+    >/dev/null 2>&1 || { printf '\033[31mNeovim 0.12.x is required\033[0m\n'; failed=1; }
+  nvim --headless -i NONE "+lua if vim.g.portable_nvim_loaded ~= 1 then vim.cmd('cquit') end" +qa \
+    >/dev/null 2>&1 || { printf '\033[31mPortable Neovim config did not load completely\033[0m\n'; failed=1; }
+fi
+
+exit "$failed"

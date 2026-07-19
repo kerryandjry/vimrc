@@ -3,7 +3,8 @@ vim.g.mapleader = ","
 local keymap = vim.keymap -- for conciseness
 local opt = { noremap = true, silent = true }
 
-keymap.set("n", "Z", "ZZ")
+keymap.set("n", "Z", "<cmd>wq<cr>", { desc = "save and quit" })
+keymap.set("x", "Z", "<esc><cmd>wq<cr>", { desc = "save and quit" })
 keymap.set("n", "Q", "ZQ")
 
 keymap.set("n", "<F1>", ":w<cr>")
@@ -51,44 +52,18 @@ keymap.set("t", "<F2>", function()
   toggle_term()
 end, { noremap = true, silent = true, desc = "toggle terminal (cwd)" })
 
-keymap.set("n", "<F9>", "<cmd>Yazi<cr>", { desc = "Yazi" })
+keymap.set("n", "<F9>", "<cmd>Yazi toggle<cr>", { desc = "toggle Yazi" })
 
 -- IlluminatedWord
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordText Visual" })
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordRead Visual" })
 vim.api.nvim_create_autocmd({ "BufEnter" }, { command = ":hi link IlluminatedWordWrite Visual" })
 
--- automactic formatic when save
-vim.api.nvim_create_autocmd("BufWritePre", {
-  pattern = "*",
-  callback = function()
-    vim.lsp.buf.format({ async = false })
-  end,
-})
-
-vim.keymap.set('n', '<F3>', function()
-  local ft = vim.bo.filetype
-  local filename = vim.fn.expand('%:p')
-  local build_dir = "build"
-  local exe = build_dir .. "/main"
-
-  if ft == "cpp" then
-    -- 自動 build 並執行
-    vim.cmd("w")                 -- 先儲存
-    vim.fn.mkdir(build_dir, "p") -- 確保有 build 資料夾
-    vim.cmd("!cmake -S . -B " .. build_dir .. " && cmake --build " .. build_dir .. " && " .. exe)
-  elseif ft == "python" then
-    vim.cmd("w")
-    vim.cmd("!python3 " .. filename)
-  else
-    print("F3: 不支援的檔案類型")
-  end
-end, { noremap = true, silent = true })
 -- del default keymap
-vim.keymap.del('n', 'gri')
-vim.keymap.del('n', 'grr')
-vim.keymap.del('n', 'gra')
-vim.keymap.del('n', 'grn')
+pcall(vim.keymap.del, 'n', 'gri')
+pcall(vim.keymap.del, 'n', 'grr')
+pcall(vim.keymap.del, 'n', 'gra')
+pcall(vim.keymap.del, 'n', 'grn')
 
 -- barbar --
 keymap.set("n", "<leader>1", "<cmd>BufferGoto 1<cr>", opt)
@@ -111,24 +86,26 @@ keymap.set("n", "<leader>d", function()
   end
 end, { noremap = true, silent = true, desc = "close buf" })
 
--- nvim-gpt
--- keymap.set("n", "<c-c>", ":ChatGPT<cr>")
--- keymap.set("n", "<leader>c", "<cmd>ChatGPTCompleteCode<cr>")
---
--- dap
--- keymap.set(
--- 	"n",
--- 	"<leader>df",
--- 	"<cmd>lua require'dap'.toggle_breakpoint(); require 'config.plugins.dap.dap-util'.store_breakpoints(true)<cr>",
--- 	opt
--- )
--- keymap.set("n", "<leader>db", "<cmd>lua require'dap'.set_breakpoint<cr>", opt)
--- keymap("n", "<leader>dr", "lua require'dap'.repl.open()<cr>", opts)
--- keymap.set("n", "<F9>", "<cmd>lua require'dap'.run_last()<cr>", opt)
--- keymap.set("n", "<F10>", '<cmd>lua require"config.plugins.dap.dap-util".reload_continue()<CR>', opt)
--- keymap.set("n", "<F4>", "<cmd>lua require'dap'.terminate()<cr>", opt)
--- keymap.set("n", "<F5>", "<cmd>lua require'dap'.continue()<cr>", opt)
--- keymap.set("n", "<F6>", "<cmd>lua require'dap'.step_over()<cr>", opt)
--- keymap.set("n", "<F7>", "<cmd>lua require'dap'.step_into()<cr>", opt)
--- keymap.set("n", "<F8>", "<cmd>lua require'dap'.step_out()<cr>", opt)
--- keymap.set("n", "K", "<cmd>lua require'dapui'.eval()<cr>", opt)
+-- automactic switch to US afer entering normal mode in vim --
+local ime_switch_available = vim.fn.has("mac") == 1 and vim.fn.executable("hs") == 1
+local function set_ime_us()
+  vim.fn.jobstart({
+    "hs", "-c", 'hs.keycodes.currentSourceID("com.apple.keylayout.US")'
+  }, { detach = true })
+end
+
+local ime_timer = nil
+if ime_switch_available then
+  vim.api.nvim_create_autocmd("InsertLeave", {
+    callback = function()
+      -- debounce: 50ms 內多次觸發只做一次
+      if ime_timer then
+        ime_timer:stop(); ime_timer:close()
+      end
+      ime_timer = vim.loop.new_timer()
+      ime_timer:start(50, 0, vim.schedule_wrap(function()
+        set_ime_us()
+      end))
+    end,
+  })
+end

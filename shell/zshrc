@@ -1,0 +1,76 @@
+# Interactive zsh settings. Keep machine-specific secrets in ~/.zshrc outside
+# the portable-nvim managed block.
+[[ -o interactive ]] || return
+
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
+mkdir -p "${HISTFILE:h}"
+HISTSIZE=10000000
+SAVEHIST=10000000
+setopt append_history hist_ignore_all_dups hist_ignore_space share_history autocd interactive_comments
+
+# Do not initialize completion twice when the host config/framework already did.
+if (( ! $+functions[compdef] )); then
+  autoload -Uz compinit
+  _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
+  mkdir -p "${_compdump:h}"
+  compinit -d "$_compdump"
+  unset _compdump
+fi
+
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list \
+  'm:{[:lower:][:upper:]-_}={[:upper:][:lower:]_-}' 'r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' special-dirs true
+zstyle ':completion:*' list-colors ''
+zstyle ':completion:*:*:kill:*:processes' list-colors \
+  '=(#b) #([0-9]#) ([0-9a-z-]#)*=01;34=0=01'
+
+bindkey -e
+if (( $+widgets[history-substring-search-up] )); then
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+fi
+
+_portable_zsh_plugins="${XDG_DATA_HOME:-$HOME/.local/share}/nvim-portable/zsh"
+if (( ! $+functions[_zsh_autosuggest_start] )); then
+  [[ -r "$_portable_zsh_plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] &&
+    source "$_portable_zsh_plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=60'
+if command -v fzf >/dev/null 2>&1 && (( ! $+widgets[fzf-file-widget] )); then
+  source <(fzf --zsh)
+fi
+if command -v zoxide >/dev/null 2>&1 && (( ! $+functions[__zoxide_z] )); then
+  eval "$(zoxide init zsh)"
+fi
+# Syntax highlighting must be sourced after packages that create ZLE widgets.
+if [[ -z ${FAST_HIGHLIGHT_VERSION:-} ]]; then
+  [[ -r "$_portable_zsh_plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" ]] &&
+    source "$_portable_zsh_plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
+fi
+unset _portable_zsh_plugins
+
+_portable_aliases="${XDG_CONFIG_HOME:-$HOME/.config}/nvim/shell/aliases.zsh"
+[[ -r "$_portable_aliases" ]] && source "$_portable_aliases"
+unset _portable_aliases
+
+ya() {
+  local tmp cwd
+  tmp="$(mktemp -t yazi-cwd.XXXXX)" || return
+  yazi --cwd-file="$tmp"
+  if cwd="$(command cat -- "$tmp")" && [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+    builtin cd -- "$cwd"
+  fi
+  command rm -f -- "$tmp"
+}
+
+vf() {
+  local file
+  file="$(rg --files 2>/dev/null | fzf --preview 'bat --style=numbers --color=always {}' --height=40%)"
+  [[ -n "$file" ]] && nvim "$file"
+}
+
+export GPG_TTY="$(tty 2>/dev/null)"
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+fi

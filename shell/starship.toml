@@ -1,0 +1,131 @@
+[username]
+format = " [╭─$user]($style) "
+style_user = "bold red"
+style_root = "bold red"
+show_always = true
+
+[directory]
+truncation_length = 3
+fish_style_pwd_dir_length = 2
+home_symbol = "󰋜 ~"
+read_only_style = "197"
+read_only = "  "
+format = "[$path]($style)[$read_only]($read_only_style) "
+style = "purple"
+truncate_to_repo = true
+
+[directory.substitutions]
+Documents = "󰈙 "
+Downloads = " "
+Music = "󰝚 "
+Pictures = " "
+work = "󰲋 "
+
+[git_status]
+format = "[$all_status$ahead_behind]($style) "
+style = "bold green"
+conflicted = "🏳"
+up_to_date = ""
+untracked = " "
+ahead = "⇡${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+behind = "⇣${count}"
+stashed = " "
+modified = " "
+staged = "[++\\($count\\)](green)"
+renamed = "襁 "
+deleted = " "
+
+[git_branch]
+symbol = " "
+format = "via [$symbol$branch]($style)"
+truncation_symbol = "…/"
+style = "bold green"
+
+[cmd_duration]
+min_time = 1
+format = "took [$duration]($style)"
+disabled = false
+
+[battery]
+charging_symbol = "⚡️ "
+discharging_symbol = "💀 "
+
+[status]
+style = "bg:red"
+symbol = "🔥 "
+format = "[\\[$symbol$status\\]]($style) "
+disabled = false
+
+[time]
+format = " 🕙 $time($style)\n"
+time_format = "%T"
+style = "bright-white"
+disabled = true
+
+[character]
+success_symbol = "💻 "
+error_symbol = "❌ "
+
+[docker_context]
+symbol = " "
+format = "via [$symbol$context]($style) "
+style = "blue bold"
+only_with_files = true
+detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile"]
+detect_folders = []
+disabled = false
+
+[nodejs]
+symbol = "⬢ "
+
+[aws]
+symbol = "  "
+
+[conda]
+symbol = " "
+
+[dart]
+symbol = " "
+
+[elixir]
+symbol = " "
+
+[elm]
+symbol = " "
+
+[golang]
+symbol = " "
+
+[hg_branch]
+symbol = " "
+
+[java]
+symbol = " "
+
+[lua]
+symbol = " "
+
+[memory_usage]
+symbol = " "
+
+[nix_shell]
+symbol = " "
+
+[package]
+symbol = " "
+
+[php]
+symbol = " "
+
+[rust]
+symbol = " "
+
+[python]
+symbol = " "
+format = "via [${symbol}python (${version} )(\\($virtualenv\\) )]($style)"
+style = "bold yellow"
+pyenv_prefix = "venv "
+python_binary = ["./venv/bin/python", "python", "python3", "python2"]
+detect_extensions = ["py"]
+version_format = "v${raw}"

@@ -1,12 +1,15 @@
 return {
   'folke/snacks.nvim',
   lazy = false,
+  priority = 1000,
   ---@type snacks.Config
   opts = {
-    picker = { enabled = true },
+    picker = { enabled = true, ui_select = true },
+    notifier = { enabled = true },
   },
-  config = function()
-    -- require 'custom.config.snacks'
+  config = function(_, opts)
+    require('snacks').setup(opts)
+    vim.ui.select = Snacks.picker.select
     local map = function(key, func, desc)
       vim.keymap.set('n', key, func, { desc = desc })
     end

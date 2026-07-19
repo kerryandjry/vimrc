@@ -1,69 +1,101 @@
+local parsers = {
+  "bash",
+  "c",
+  "cmake",
+  "cpp",
+  "dart",
+  "go",
+  "html",
+  "java",
+  "javascript",
+  "lua",
+  "markdown",
+  "markdown_inline",
+  "prisma",
+  "python",
+  "query",
+  "regex",
+  "typescript",
+  "vim",
+  "vimdoc",
+  "yaml",
+}
+
 return {
-	"nvim-treesitter/playground",
-	{
-		"nvim-treesitter/nvim-treesitter",
-		event = { "BufReadPre", "BufNewFile" },
-		priority = 1000,
-		build = ":TSUpdate",
-		config = function()
-			require("nvim-treesitter.configs").setup({
-				ensure_installed = {
-					"html",
-					"javascript",
-					"typescript",
-					"query",
-					"dart",
-					"java",
-					"c",
-					"prisma",
-					"bash",
-					"go",
-					"lua",
-					"vim",
-					"cpp",
-					"python",
-					"yaml",
-				},
-				highlight = {
-					enable = true,
-					disable = {}, -- list of language that will be disabled
-				},
-				indent = {
-					enable = true,
-				},
-				-- incremental_selection = {
-				-- 	enable = true,
-				-- 	keymaps = {
-				--                     init_selection    = "<c-n>",
-				-- 		node_incremental  = "<c-n>",
-				-- 		node_decremental  = "<c-h>",
-				-- 		scope_incremental = "<c-l>",
-				-- 	},
-				-- }
-			})
-		end,
-	},
-	{
-		"nvim-treesitter/nvim-treesitter-context",
-		config = function()
-			local tscontext = require("treesitter-context")
-			tscontext.setup({
-				enable = true,
-				max_lines = 0, -- How many lines the window should span. Values <= 0 mean no limit
-				min_window_height = 0, -- Minimum editor window height to enable context. Values <= 0 mean no limit.
-				line_numbers = true,
-				multiline_threshold = 20, -- Maximum number of lines to collapse for a single context line
-				trim_scope = "outer", -- Which context lines to discard if `max_lines` is exceeded. Choices: 'inner', 'outer'
-				mode = "cursor", -- Line used to calculate context. Choices: 'cursor', 'topline'
-				-- Separator between context and content. Should be a single character string, like '-'.
-				-- When separator is set, the context will only show up when there are at least 2 lines above cursorline.
-				separator = nil,
-				zindex = 20, -- The Z-index of the context window
-				on_attach = nil, -- (fun(buf: integer): boolean) return false to disable attaching
-			})
-			vim.keymap.set("n", "[c", function()
-				tscontext.go_to_context()
-			end, { silent = true })
-		end,
-	},
+  {
+    "nvim-treesitter/nvim-treesitter",
+    branch = "main",
+    lazy = false,
+    build = ":TSUpdate",
+    config = function()
+      local treesitter = require("nvim-treesitter")
+      local legacy_root = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter"
+      for _, directory in ipairs({ "parser", "parser-info" }) do
+        local legacy_path = legacy_root .. "/" .. directory
+        if vim.uv.fs_stat(legacy_path) then
+          vim.fn.delete(legacy_path, "rf")
+        end
+      end
+      -- Explicitly prepend the managed parser directory so stale parser
+      -- binaries left inside a plugin checkout can never shadow it.
+      treesitter.setup({
+        install_dir = vim.fn.stdpath("data") .. "/site",
+      })
+
+      local function parser_failure(message)
+        if #vim.api.nvim_list_uis() == 0 then
+          vim.api.nvim_err_writeln(message)
+          vim.cmd("cquit")
+        else
+          error(message)
+        end
+      end
+
+      vim.api.nvim_create_user_command("PortableTSInstall", function()
+        local installed = treesitter.install(parsers, {
+          force = true,
+          max_jobs = 4,
+          summary = true,
+        }):wait(300000)
+        if not installed then
+          parser_failure("one or more Treesitter parsers failed to install")
+        end
+      end, { desc = "Install parsers required by this configuration" })
+
+      vim.api.nvim_create_user_command("PortableTSUpdate", function()
+        local updated = treesitter.update(parsers, { max_jobs = 4, summary = true }):wait(300000)
+        local installed = treesitter.install(parsers, { max_jobs = 4, summary = true }):wait(300000)
+        if not updated or not installed then
+          parser_failure("one or more Treesitter parsers failed to update")
+        end
+      end, { desc = "Update parsers required by this configuration" })
+
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("portable-treesitter", { clear = true }),
+        pattern = parsers,
+        callback = function()
+          pcall(vim.treesitter.start)
+          vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        end,
+      })
+    end,
+  },
+  {
+    "nvim-treesitter/nvim-treesitter-context",
+    opts = {
+      enable = true,
+      max_lines = 0,
+      multiline_threshold = 20,
+      mode = "cursor",
+    },
+    keys = {
+      {
+        "[c",
+        function()
+          require("treesitter-context").go_to_context()
+        end,
+        desc = "Go to Treesitter context",
+      },
+    },
+  },
 }
