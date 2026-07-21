@@ -227,6 +227,99 @@ install_ai_tools() {
   trap - RETURN
 }
 
+install_agent_global_memory() {
+  local claude_dir="$HOME/.claude"
+  local codex_dir="$HOME/.codex"
+  local claude_memory="$claude_dir/CLAUDE.md"
+  local codex_memory="$codex_dir/AGENTS.md"
+  local temporary
+
+  temporary="$(mktemp "${TMPDIR:-/tmp}/agent-global-memory.XXXXXX")"
+  cat > "$temporary" <<'EOF'
+# CLAUDE.md
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+EOF
+
+  mkdir -p "$claude_dir" "$codex_dir"
+  if [[ -e "$claude_memory" ]] && ! cmp -s "$temporary" "$claude_memory"; then
+    backup_once "$claude_memory"
+  fi
+  install -m 0644 "$temporary" "$claude_memory"
+  rm -f "$temporary"
+
+  if [[ -L "$codex_memory" && "$(readlink "$codex_memory")" == "$claude_memory" ]]; then
+    log "Agent global memory is already configured"
+    return
+  fi
+  if [[ -d "$codex_memory" ]]; then
+    die "Cannot replace directory with agent global memory link: $codex_memory"
+  fi
+  if [[ -e "$codex_memory" || -L "$codex_memory" ]]; then
+    backup_once "$codex_memory"
+    rm -f "$codex_memory"
+  fi
+  ln -s "$claude_memory" "$codex_memory"
+  log "Installed agent global memory for Claude and Codex"
+}
+
 sync_shell_plugins() {
   ((MINIMAL == 0)) || return 0
   local plugin_root="$DATA_HOME/nvim-portable/zsh" name url destination
@@ -333,6 +426,7 @@ main() {
     die "Do not run this installer with sudo; run it as your normal user ($SUDO_USER)"
   fi
   link_config
+  install_agent_global_memory
   export PATH="$LOCAL_BIN:$PATH"
   [[ -d "$ENV_PREFIX/bin" ]] && export PATH="$ENV_PREFIX/bin:$PATH"
   if ((INSTALL_PACKAGES)) && { ((UPDATE)) && [[ -d "$ENV_PREFIX/conda-meta" ]] || need_portable_env; }; then
