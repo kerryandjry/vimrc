@@ -20,6 +20,9 @@ timestamp. It adds small, clearly marked blocks to `~/.zshrc`, `~/.bashrc`, and
 `~/.tmux.conf`; the original file is also copied once to `*.pre-nvim-dotfiles`.
 Fish loads a file from `~/.config/fish/conf.d/`. Machine-specific settings and
 secrets should stay outside the managed blocks and must not be committed.
+The full installation also links the repository's Yazi configuration to
+`~/.config/yazi/yazi.toml`, preserving an existing file once as
+`yazi.toml.pre-nvim-dotfiles`.
 
 ### Useful variants
 

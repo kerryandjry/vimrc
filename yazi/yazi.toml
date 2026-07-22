@@ -1,0 +1,20 @@
+[opener]
+edit = [
+  { run = 'nvim "$@"', block = true, for = "unix" }
+]
+updf = [
+  { run = 'open -a "UPDF" "$@"', for = "macos" }
+]
+
+[open]
+rules = [
+  { mime = "text/*", use = "edit" },
+  { url = "*.md", use = "edit" },
+  { url = "*.lua", use = "edit" },
+  { url = "*.toml", use = "edit" },
+  { mime = "application/pdf", use = "updf" },
+]
+
+[mgr]
+show_hidden = true
+linemode = "size_and_mtime"

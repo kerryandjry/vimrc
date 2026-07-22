@@ -5,7 +5,8 @@ set -euo pipefail
 # It never needs sudo: missing tools are installed in a Conda-compatible environment.
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-readonly CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+readonly CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+readonly CONFIG_DIR="$CONFIG_HOME/nvim"
 readonly DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 readonly LOCAL_BIN="$HOME/.local/bin"
 readonly ENV_PREFIX="${NVIM_ENV_PREFIX:-$DATA_HOME/nvim-portable/env}"
@@ -397,6 +398,19 @@ install_shell_config() {
   ln -sfn "$CONFIG_DIR/shell/config.fish" "$fish_file"
 }
 
+install_yazi_config() {
+  local yazi_dir="$CONFIG_HOME/yazi"
+  local yazi_file="$yazi_dir/yazi.toml"
+  local yazi_source="$CONFIG_DIR/yazi/yazi.toml"
+  mkdir -p "$yazi_dir"
+  if [[ -L "$yazi_file" && "$(readlink "$yazi_file")" == "$yazi_source" ]]; then
+    return
+  fi
+  backup_once "$yazi_file"
+  ln -sfn "$yazi_source" "$yazi_file"
+  log "Installed Yazi configuration"
+}
+
 sync_plugins() {
   have_modern_nvim || die "Neovim 0.12.x is required by this configuration"
   local active_config
@@ -436,6 +450,7 @@ main() {
   fi
   ((INSTALL_SHELL)) && sync_shell_plugins
   ((INSTALL_SHELL)) && install_shell_config
+  ((MINIMAL == 0)) && install_yazi_config
   ((INSTALL_AI_TOOLS)) && install_ai_tools
   ((SYNC_PLUGINS)) && sync_plugins
 

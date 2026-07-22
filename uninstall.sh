@@ -94,6 +94,7 @@ show_plan() {
     "$CACHE_HOME/nvim"
   printf '  portable-nvim blocks in ~/.bashrc, ~/.zshrc, and ~/.tmux.conf\n'
   printf '  the managed Fish symlink, if present\n'
+  printf '  the managed Yazi configuration symlink, if present\n'
   printf '  installer-owned micromamba/Codex/Claude binaries, when marked\n'
   if ((REMOVE_REPO)); then
     printf '  repository: %s\n' "$SCRIPT_DIR"
@@ -159,6 +160,13 @@ main() {
     remove_file "$fish_file"
   elif [[ -e "$fish_file" ]]; then
     warn "Keeping non-symlink Fish config: $fish_file"
+  fi
+
+  local yazi_file="$CONFIG_HOME/yazi/yazi.toml"
+  if [[ -L "$yazi_file" && "$(readlink "$yazi_file")" == "$CONFIG_DIR/yazi/yazi.toml" ]]; then
+    remove_file "$yazi_file"
+  elif [[ -e "$yazi_file" || -L "$yazi_file" ]]; then
+    warn "Keeping unrelated Yazi config: $yazi_file"
   fi
 
   remove_owned_ai_tools
