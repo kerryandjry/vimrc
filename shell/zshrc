@@ -6,7 +6,7 @@
 # macOS/Hammerspoon-specific and remains completely disabled on other machines.
 if [[ ${TERMINAL_AUTO_ENGLISH:-0} == 1 && $OSTYPE == darwin* ]] && (( $+commands[hs] )); then
   autoload -Uz add-zsh-hook
-  _terminal_english_programs=(ssh nvim vim vi git lazygit yazi ya ranger fzf vf)
+  _terminal_english_programs=(ssh nvim vim vi codex claude cc git lazygit yazi ya ranger fzf vf)
 
   _terminal_set_english() {
     command hs -c 'setEnglishInputSource()' >/dev/null 2>&1 &!

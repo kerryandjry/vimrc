@@ -12,6 +12,7 @@ alias ll='ls -l'
 
 alias vim='nvim -c "e ++enc=GBK"'
 alias vi='nvim'
+(( $+commands[claude] )) && alias cc='claude'
 (( $+commands[bat] )) && alias cat='bat'
 alias b='cd ..'
 alias g++='g++ -std=c++17'

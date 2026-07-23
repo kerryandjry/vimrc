@@ -32,16 +32,18 @@ The full installation also links the repository's Yazi configuration to
 ./install.sh --no-shell      # leave zsh/bash/fish/tmux untouched
 ./install.sh --no-packages   # use tools already installed by the system
 ./install.sh --no-plugins    # skip the initial lazy.nvim sync
-./install.sh --with-ai-tools # also install the optional Codex and Claude Code CLIs
+./install.sh --with-ai-tools # also install the optional Codex, Claude Code, and Pi agent CLIs
 ./bin/nvim-doctor            # show missing and active tools
 ```
 
-`--with-ai-tools` uses the official native installers and only installs a CLI
-when its command is missing. Codex and Claude Code manage their own updates
-outside the micromamba environment. Authentication and API keys remain
-machine-specific: run `codex` and `claude` after installation to complete their
-separate sign-in flows. The option is not enabled by default, including with
-`--minimal`.
+`--with-ai-tools` uses the official installers and only installs a CLI when its
+command is missing. Codex, Claude Code, and Pi manage their own updates outside
+the bootstrap lifecycle. The repository restores Pi's global settings, shared
+agent memory, PDF skill, and pinned extension packages from `pi/agent/`.
+Authentication, API keys, trust decisions, and session history remain
+machine-specific and are deliberately not committed: run `codex`, `claude`, and
+`pi` after installation to complete their separate sign-in flows. The option is
+not enabled by default, including with `--minimal`.
 
 Missing dependencies are installed from conda-forge into
 `~/.local/share/nvim-portable/env`. The bootstrap reuses an available

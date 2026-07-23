@@ -14,7 +14,6 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
   require("config.plugins.tokyonight"),
-  require("config.plugins.comment"),
   require("config.plugins.treesitter"),
   require("config.plugins.autopairs"),
   require("config.plugins.lualine"),

@@ -31,7 +31,7 @@ Usage: ./uninstall.sh [options]
 
 The uninstaller removes the portable tool environment, Neovim data/cache/state,
 managed shell blocks, shell plugins, and installer-owned CLI binaries. It keeps
-Codex/Claude credentials, pre-install backups, and this repository by default.
+Codex/Claude/Pi credentials, pre-install backups, and this repository by default.
 
 Use the same XDG_CONFIG_HOME, XDG_DATA_HOME, XDG_STATE_HOME, XDG_CACHE_HOME, and
 NVIM_ENV_PREFIX values that were used during installation.
@@ -95,7 +95,7 @@ show_plan() {
   printf '  portable-nvim blocks in ~/.bashrc, ~/.zshrc, and ~/.tmux.conf\n'
   printf '  the managed Fish symlink, if present\n'
   printf '  the managed Yazi configuration symlink, if present\n'
-  printf '  installer-owned micromamba/Codex/Claude binaries, when marked\n'
+  printf '  installer-owned micromamba/Codex/Claude/Pi binaries, when marked\n'
   if ((REMOVE_REPO)); then
     printf '  repository: %s\n' "$SCRIPT_DIR"
   else
@@ -120,6 +120,17 @@ remove_owned_ai_tools() {
   if [[ -f "$PORTABLE_ROOT/claude-installed-by-nvim" ]]; then
     remove_file "$LOCAL_BIN/claude"
     remove_tree "$HOME/.local/share/claude"
+  fi
+  if [[ -s "$PORTABLE_ROOT/pi-installed-by-nvim" ]]; then
+    local pi_bin pi_prefix
+    IFS= read -r pi_bin < "$PORTABLE_ROOT/pi-installed-by-nvim"
+    if [[ "$pi_bin" == */bin/pi ]]; then
+      pi_prefix="${pi_bin%/bin/pi}"
+      remove_file "$pi_bin"
+      remove_tree "$pi_prefix/lib/node_modules/@earendil-works/pi-coding-agent"
+    else
+      warn "Keeping Pi because its recorded install path is unexpected: $pi_bin"
+    fi
   fi
   return 0
 }

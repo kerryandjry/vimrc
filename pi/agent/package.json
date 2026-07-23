@@ -1,0 +1,9 @@
+{
+  "name": "pi-extensions",
+  "private": true,
+  "dependencies": {
+    "@vigolium/piolium": "^0.0.13",
+    "pi-mcp-adapter": "^2.11.0",
+    "pi-web-access": "^0.13.0"
+  }
+}

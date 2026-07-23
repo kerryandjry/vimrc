@@ -34,7 +34,7 @@ Usage: ./install.sh [options]
   --no-packages   Do not install missing command-line tools
   --no-shell      Do not add managed blocks to shell/tmux configuration
   --no-plugins    Do not run lazy.nvim sync
-  --with-ai-tools Install the optional Codex and Claude Code CLIs
+  --with-ai-tools Install the optional Codex, Claude Code, and Pi agent CLIs
   -h, --help      Show this help
 
 Environment:
@@ -86,6 +86,12 @@ need_portable_env() {
       command -v "$command_name" >/dev/null 2>&1 || return 0
     done
     command -v clang++ >/dev/null 2>&1 || command -v g++ >/dev/null 2>&1 || return 0
+  fi
+  if ((INSTALL_AI_TOOLS)); then
+    command -v npm >/dev/null 2>&1 || return 0
+    command -v node >/dev/null 2>&1 || return 0
+    node -e 'const [a,b,c]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&(b>19||(b===19&&c>=0)))?0:1)' \
+      >/dev/null 2>&1 || return 0
   fi
   return 1
 }
@@ -165,6 +171,9 @@ install_portable_tools() {
       tmux lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
       lua-language-server pyright cmake-language-server ruff pynvim
     )
+  elif ((INSTALL_AI_TOOLS)); then
+    # Pi package restoration needs npm even when using the minimal profile.
+    packages+=(nodejs)
   fi
 
   log "Installing portable tools into $ENV_PREFIX"
@@ -224,6 +233,20 @@ install_ai_tools() {
     touch "$DATA_HOME/nvim-portable/claude-installed-by-nvim"
   fi
 
+  hash -r 2>/dev/null || true
+  if command -v pi >/dev/null 2>&1; then
+    log "Pi agent is already installed; its updater will manage upgrades"
+  else
+    installer="$temporary/pi-install.sh"
+    log "Installing optional Pi agent CLI"
+    download "https://pi.dev/install.sh" "$installer"
+    sh "$installer"
+    hash -r 2>/dev/null || true
+    command -v pi >/dev/null 2>&1 || die "Pi installer completed but pi is not on PATH"
+    mkdir -p "$DATA_HOME/nvim-portable"
+    command -v pi > "$DATA_HOME/nvim-portable/pi-installed-by-nvim"
+  fi
+
   rm -rf "$temporary"
   trap - RETURN
 }
@@ -231,8 +254,10 @@ install_ai_tools() {
 install_agent_global_memory() {
   local claude_dir="$HOME/.claude"
   local codex_dir="$HOME/.codex"
+  local pi_dir="$HOME/.pi/agent"
   local claude_memory="$claude_dir/CLAUDE.md"
   local codex_memory="$codex_dir/AGENTS.md"
+  local pi_memory="$pi_dir/AGENTS.md"
   local temporary
 
   temporary="$(mktemp "${TMPDIR:-/tmp}/agent-global-memory.XXXXXX")"
@@ -299,26 +324,112 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 EOF
 
-  mkdir -p "$claude_dir" "$codex_dir"
+  mkdir -p "$claude_dir" "$codex_dir" "$pi_dir"
   if [[ -e "$claude_memory" ]] && ! cmp -s "$temporary" "$claude_memory"; then
     backup_once "$claude_memory"
   fi
   install -m 0644 "$temporary" "$claude_memory"
   rm -f "$temporary"
 
-  if [[ -L "$codex_memory" && "$(readlink "$codex_memory")" == "$claude_memory" ]]; then
-    log "Agent global memory is already configured"
+  if [[ ! -L "$codex_memory" || "$(readlink "$codex_memory" 2>/dev/null || true)" != "$claude_memory" ]]; then
+    if [[ -d "$codex_memory" ]]; then
+      die "Cannot replace directory with agent global memory link: $codex_memory"
+    fi
+    if [[ -e "$codex_memory" || -L "$codex_memory" ]]; then
+      backup_once "$codex_memory"
+      rm -f "$codex_memory"
+    fi
+    ln -s "$claude_memory" "$codex_memory"
+  fi
+
+  if [[ ! -L "$pi_memory" || "$(readlink "$pi_memory" 2>/dev/null || true)" != "$claude_memory" ]]; then
+    if [[ -d "$pi_memory" ]]; then
+      die "Cannot replace directory with agent global memory link: $pi_memory"
+    fi
+    if [[ -e "$pi_memory" || -L "$pi_memory" ]]; then
+      backup_once "$pi_memory"
+      rm -f "$pi_memory"
+    fi
+    ln -s "$claude_memory" "$pi_memory"
+  fi
+  log "Installed shared agent global memory for Claude, Codex, and Pi"
+}
+
+install_pi_settings() {
+  local source_dir="$SCRIPT_DIR/pi/agent"
+  local pi_dir="$HOME/.pi/agent"
+  local relative source destination
+
+  [[ -d "$source_dir" ]] || die "Missing managed Pi configuration: $source_dir"
+  mkdir -p "$pi_dir"
+  while IFS= read -r relative; do
+    source="$source_dir/$relative"
+    destination="$pi_dir/$relative"
+    mkdir -p "$(dirname "$destination")"
+    if [[ -e "$destination" ]] && ! cmp -s "$source" "$destination"; then
+      backup_once "$destination"
+    fi
+    install -m 0644 "$source" "$destination"
+  done < <(cd "$source_dir" && find . -type f ! -name package.json ! -name package-lock.json -print | sed 's#^./##' | sort)
+  log "Installed Pi settings and local skills"
+}
+
+sync_pi_packages() {
+  local source_dir="$SCRIPT_DIR/pi/agent"
+  local npm_dir="$HOME/.pi/agent/npm"
+
+  command -v pi >/dev/null 2>&1 || return 0
+  if ! command -v npm >/dev/null 2>&1; then
+    warn "npm is unavailable; Pi settings were installed but its packages could not be restored"
+    return 0
+  fi
+  mkdir -p "$npm_dir"
+  install -m 0644 "$source_dir/package.json" "$npm_dir/package.json"
+  install -m 0644 "$source_dir/package-lock.json" "$npm_dir/package-lock.json"
+  log "Restoring pinned Pi packages"
+  # Pi is supplied globally; do not install package peer declarations locally.
+  npm ci --omit=dev --legacy-peer-deps --prefix "$npm_dir"
+}
+
+install_claude_settings() {
+  local claude_dir="$HOME/.claude"
+  local settings="$claude_dir/settings.json"
+  local temporary
+
+  mkdir -p "$claude_dir"
+  temporary="$(mktemp "${TMPDIR:-/tmp}/claude-settings.XXXXXX")"
+
+  if [[ ! -s "$settings" ]]; then
+    printf '{\n  "editorMode": "vim"\n}\n' > "$temporary"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 - "$settings" "$temporary" <<'PY'
+import json
+import sys
+
+source, destination = sys.argv[1:]
+with open(source, encoding="utf-8") as handle:
+    settings = json.load(handle)
+if not isinstance(settings, dict):
+    raise SystemExit(f"Claude settings must contain a JSON object: {source}")
+settings["editorMode"] = "vim"
+with open(destination, "w", encoding="utf-8") as handle:
+    json.dump(settings, handle, ensure_ascii=False, indent=2)
+    handle.write("\n")
+PY
+  else
+    rm -f "$temporary"
+    die "python3 is required to preserve and update existing Claude settings: $settings"
+  fi
+
+  if [[ -e "$settings" ]] && cmp -s "$temporary" "$settings"; then
+    rm -f "$temporary"
+    log "Claude Code Vim mode is already configured"
     return
   fi
-  if [[ -d "$codex_memory" ]]; then
-    die "Cannot replace directory with agent global memory link: $codex_memory"
-  fi
-  if [[ -e "$codex_memory" || -L "$codex_memory" ]]; then
-    backup_once "$codex_memory"
-    rm -f "$codex_memory"
-  fi
-  ln -s "$claude_memory" "$codex_memory"
-  log "Installed agent global memory for Claude and Codex"
+  [[ -e "$settings" ]] && backup_once "$settings"
+  install -m 0600 "$temporary" "$settings"
+  rm -f "$temporary"
+  log "Configured Claude Code to use Vim mode"
 }
 
 sync_shell_plugins() {
@@ -441,6 +552,8 @@ main() {
   fi
   link_config
   install_agent_global_memory
+  install_claude_settings
+  install_pi_settings
   export PATH="$LOCAL_BIN:$PATH"
   [[ -d "$ENV_PREFIX/bin" ]] && export PATH="$ENV_PREFIX/bin:$PATH"
   if ((INSTALL_PACKAGES)) && { ((UPDATE)) && [[ -d "$ENV_PREFIX/conda-meta" ]] || need_portable_env; }; then
@@ -452,12 +565,13 @@ main() {
   ((INSTALL_SHELL)) && install_shell_config
   ((MINIMAL == 0)) && install_yazi_config
   ((INSTALL_AI_TOOLS)) && install_ai_tools
+  sync_pi_packages
   ((SYNC_PLUGINS)) && sync_plugins
 
   log "Installation complete"
   printf '    Restart your shell, then run: nvim\n'
   if ((INSTALL_AI_TOOLS)); then
-    printf '    Run codex and claude once to complete their individual sign-in flows.\n'
+    printf '    Run codex, claude, and pi once to complete their individual sign-in flows.\n'
   fi
   printf '    Check the environment with: %s/bin/nvim-doctor\n' "$CONFIG_DIR"
 }

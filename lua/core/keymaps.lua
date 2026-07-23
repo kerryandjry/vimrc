@@ -9,6 +9,10 @@ keymap.set("n", "Q", "ZQ")
 
 keymap.set("n", "<F1>", ":w<cr>")
 
+-- Neovim provides `gcc` for the current line and `gc` for a visual selection.
+-- Keep `gcc` in Visual mode as an alias for the native `gc` mapping.
+keymap.set("x", "gcc", "gc", { remap = true, desc = "comment selected lines" })
+
 -- F2: toggle terminal in current directory
 local term_win = nil
 local term_buf = nil
