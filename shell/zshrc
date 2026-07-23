@@ -2,6 +2,37 @@
 # the portable-nvim managed block.
 [[ -o interactive ]] || return
 
+# Keep shell prompts and command-oriented TUIs in the US input source. This is
+# macOS/Hammerspoon-specific and remains completely disabled on other machines.
+if [[ ${TERMINAL_AUTO_ENGLISH:-0} == 1 && $OSTYPE == darwin* ]] && (( $+commands[hs] )); then
+  autoload -Uz add-zsh-hook
+  _terminal_english_programs=(ssh nvim vim vi git lazygit yazi ya ranger fzf vf)
+
+  _terminal_set_english() {
+    command hs -c 'setEnglishInputSource()' >/dev/null 2>&1 &!
+  }
+
+  _terminal_prompt_input_source() {
+    _terminal_set_english
+    if [[ -z ${TMUX:-} ]]; then
+      print -nPr $'\e]2;terminal:zsh · %~\a'
+    fi
+  }
+
+  _terminal_command_input_source() {
+    local command_name=${${(z)1}[1]:t}
+    if (( ${_terminal_english_programs[(Ie)$command_name]} )); then
+      _terminal_set_english
+    fi
+    if [[ -z ${TMUX:-} ]]; then
+      print -nr -- $'\e]2;terminal:'"$command_name"$'\a'
+    fi
+  }
+
+  add-zsh-hook precmd _terminal_prompt_input_source
+  add-zsh-hook preexec _terminal_command_input_source
+fi
+
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 mkdir -p "${HISTFILE:h}"
 HISTSIZE=10000000
