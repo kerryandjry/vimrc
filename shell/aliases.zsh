@@ -3,6 +3,9 @@
 
 if (( $+commands[gls] )); then
   alias ls='gls --hyperlink=auto --color=auto'
+elif command ls --hyperlink=auto -d . >/dev/null 2>&1; then
+  # GNU ls on Linux supports OSC 8 file hyperlinks directly.
+  alias ls='ls --hyperlink=auto --color=auto'
 else
   alias ls='ls --color=auto'
 fi
