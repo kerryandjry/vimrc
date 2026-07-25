@@ -22,7 +22,9 @@ export CLI_COLOR=1
 export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
 
 _nvim_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
-if [ -z "${STARSHIP_CONFIG:-}" ] && [ -r "$_nvim_config_dir/shell/starship.toml" ]; then
+if [ -r "$_nvim_config_dir/shell/starship.toml" ]; then
+  # Always select the managed config. A long-lived tmux server may otherwise
+  # pass an old STARSHIP_CONFIG value to every newly created pane.
   export STARSHIP_CONFIG="$_nvim_config_dir/shell/starship.toml"
 fi
 unset _nvim_config_dir
