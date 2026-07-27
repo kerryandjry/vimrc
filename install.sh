@@ -23,10 +23,13 @@ UPDATE=0
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
-die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+die() {
+	printf '\033[1;31merror:\033[0m %s\n' "$*" >&2
+	exit 1
+}
 
 usage() {
-  cat <<'EOF'
+	cat <<'EOF'
 Usage: ./install.sh [options]
 
   --minimal       Install only Neovim and command-line essentials
@@ -45,223 +48,226 @@ EOF
 }
 
 while (($#)); do
-  case "$1" in
-    --minimal) MINIMAL=1 ;;
-    --update) UPDATE=1 ;;
-    --no-packages) INSTALL_PACKAGES=0 ;;
-    --no-shell) INSTALL_SHELL=0 ;;
-    --no-plugins) SYNC_PLUGINS=0 ;;
-    --with-ai-tools) INSTALL_AI_TOOLS=1 ;;
-    -h|--help) usage; exit 0 ;;
-    *) die "Unknown option: $1 (try --help)" ;;
-  esac
-  shift
+	case "$1" in
+	--minimal) MINIMAL=1 ;;
+	--update) UPDATE=1 ;;
+	--no-packages) INSTALL_PACKAGES=0 ;;
+	--no-shell) INSTALL_SHELL=0 ;;
+	--no-plugins) SYNC_PLUGINS=0 ;;
+	--with-ai-tools) INSTALL_AI_TOOLS=1 ;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	*) die "Unknown option: $1 (try --help)" ;;
+	esac
+	shift
 done
 
 download() {
-  local url=$1 destination=$2
-  if command -v curl >/dev/null 2>&1; then
-    curl -fL --retry 3 --connect-timeout 15 "$url" -o "$destination"
-  elif command -v wget >/dev/null 2>&1; then
-    wget -O "$destination" "$url"
-  else
-    die "curl or wget is required for the initial bootstrap"
-  fi
+	local url=$1 destination=$2
+	if command -v curl >/dev/null 2>&1; then
+		curl -fL --retry 3 --connect-timeout 15 "$url" -o "$destination"
+	elif command -v wget >/dev/null 2>&1; then
+		wget -O "$destination" "$url"
+	else
+		die "curl or wget is required for the initial bootstrap"
+	fi
 }
 
 have_modern_nvim() {
-  command -v nvim >/dev/null 2>&1 || return 1
-  nvim --clean --headless "+lua if vim.fn.has('nvim-0.12') ~= 1 then vim.cmd('cquit') end" +qa \
-    >/dev/null 2>&1
+	command -v nvim >/dev/null 2>&1 || return 1
+	nvim --clean --headless "+lua if vim.fn.has('nvim-0.12') ~= 1 then vim.cmd('cquit') end" +qa \
+		>/dev/null 2>&1
 }
 
 need_portable_env() {
-  have_modern_nvim || return 0
-  local command_name
-  for command_name in git rg fd cc zsh; do
-    command -v "$command_name" >/dev/null 2>&1 || return 0
-  done
-  if ((MINIMAL == 0)); then
-    for command_name in lazygit yazi clangd lua-language-server pyright-langserver cmake-language-server ruff tree-sitter starship; do
-      command -v "$command_name" >/dev/null 2>&1 || return 0
-    done
-    command -v clang++ >/dev/null 2>&1 || command -v g++ >/dev/null 2>&1 || return 0
-  fi
-  if ((INSTALL_AI_TOOLS)); then
-    command -v npm >/dev/null 2>&1 || return 0
-    command -v node >/dev/null 2>&1 || return 0
-    node -e 'const [a,b,c]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&(b>19||(b===19&&c>=0)))?0:1)' \
-      >/dev/null 2>&1 || return 0
-  fi
-  return 1
+	have_modern_nvim || return 0
+	local command_name
+	for command_name in git rg fd cc zsh; do
+		command -v "$command_name" >/dev/null 2>&1 || return 0
+	done
+	if ((MINIMAL == 0)); then
+		for command_name in lazygit yazi clangd lua-language-server pyright-langserver cmake-language-server ruff tree-sitter starship; do
+			command -v "$command_name" >/dev/null 2>&1 || return 0
+		done
+		command -v clang++ >/dev/null 2>&1 || command -v g++ >/dev/null 2>&1 || return 0
+	fi
+	if ((INSTALL_AI_TOOLS)); then
+		command -v npm >/dev/null 2>&1 || return 0
+		command -v node >/dev/null 2>&1 || return 0
+		node -e 'const [a,b,c]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&(b>19||(b===19&&c>=0)))?0:1)' \
+			>/dev/null 2>&1 || return 0
+	fi
+	return 1
 }
 
 install_micromamba() {
-  local platform arch archive_url release_url temporary downloaded_bin
-  case "$(uname -s)" in
-    Darwin) platform=osx ;;
-    Linux) platform=linux ;;
-    *) die "Unsupported operating system: $(uname -s)" ;;
-  esac
-  case "$(uname -m)" in
-    x86_64|amd64) arch=64 ;;
-    arm64) [[ "$platform" == osx ]] && arch=arm64 || arch=aarch64 ;;
-    aarch64) arch=aarch64 ;;
-    ppc64le) arch=ppc64le ;;
-    *) die "Unsupported CPU architecture: $(uname -m)" ;;
-  esac
+	local platform arch archive_url release_url temporary downloaded_bin
+	case "$(uname -s)" in
+	Darwin) platform=osx ;;
+	Linux) platform=linux ;;
+	*) die "Unsupported operating system: $(uname -s)" ;;
+	esac
+	case "$(uname -m)" in
+	x86_64 | amd64) arch=64 ;;
+	arm64) [[ "$platform" == osx ]] && arch=arm64 || arch=aarch64 ;;
+	aarch64) arch=aarch64 ;;
+	ppc64le) arch=ppc64le ;;
+	*) die "Unsupported CPU architecture: $(uname -m)" ;;
+	esac
 
-  mkdir -p "$LOCAL_BIN"
-  temporary="$(mktemp -d "${TMPDIR:-/tmp}/nvim-bootstrap.XXXXXX")"
-  trap 'rm -rf "$temporary"' RETURN
-  archive_url="https://micro.mamba.pm/api/micromamba/${platform}-${arch}/latest"
-  release_url="https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-${platform}-${arch}"
-  log "Downloading micromamba (${platform}-${arch})"
-  if download "$archive_url" "$temporary/micromamba.tar.bz2" \
-      && tar -xjf "$temporary/micromamba.tar.bz2" -C "$temporary" bin/micromamba; then
-    downloaded_bin="$temporary/bin/micromamba"
-  else
-    warn "micro.mamba.pm is unavailable; trying the official GitHub release"
-    download "$release_url" "$temporary/micromamba" || die \
-      "Could not download micromamba. Configure HTTPS_PROXY, provide micromamba/mamba/conda on PATH, or install $MANAGED_MAMBA_BIN manually"
-    downloaded_bin="$temporary/micromamba"
-  fi
+	mkdir -p "$LOCAL_BIN"
+	temporary="$(mktemp -d "${TMPDIR:-/tmp}/nvim-bootstrap.XXXXXX")"
+	trap 'rm -rf "$temporary"' RETURN
+	archive_url="https://micro.mamba.pm/api/micromamba/${platform}-${arch}/latest"
+	release_url="https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-${platform}-${arch}"
+	log "Downloading micromamba (${platform}-${arch})"
+	if download "$archive_url" "$temporary/micromamba.tar.bz2" &&
+		tar -xjf "$temporary/micromamba.tar.bz2" -C "$temporary" bin/micromamba; then
+		downloaded_bin="$temporary/bin/micromamba"
+	else
+		warn "micro.mamba.pm is unavailable; trying the official GitHub release"
+		download "$release_url" "$temporary/micromamba" || die \
+			"Could not download micromamba. Configure HTTPS_PROXY, provide micromamba/mamba/conda on PATH, or install $MANAGED_MAMBA_BIN manually"
+		downloaded_bin="$temporary/micromamba"
+	fi
 
-  chmod 0755 "$downloaded_bin"
-  "$downloaded_bin" --version >/dev/null 2>&1 || die "Downloaded micromamba binary could not run on this system"
-  install -m 0755 "$downloaded_bin" "$MANAGED_MAMBA_BIN"
-  PACKAGE_MANAGER_BIN="$MANAGED_MAMBA_BIN"
-  mkdir -p "$DATA_HOME/nvim-portable"
-  [[ -d "$DATA_HOME/mamba" ]] || touch "$DATA_HOME/nvim-portable/mamba-root-created-by-nvim"
-  touch "$DATA_HOME/nvim-portable/micromamba-installed-by-nvim"
-  rm -rf "$temporary"
-  trap - RETURN
+	chmod 0755 "$downloaded_bin"
+	"$downloaded_bin" --version >/dev/null 2>&1 || die "Downloaded micromamba binary could not run on this system"
+	install -m 0755 "$downloaded_bin" "$MANAGED_MAMBA_BIN"
+	PACKAGE_MANAGER_BIN="$MANAGED_MAMBA_BIN"
+	mkdir -p "$DATA_HOME/nvim-portable"
+	[[ -d "$DATA_HOME/mamba" ]] || touch "$DATA_HOME/nvim-portable/mamba-root-created-by-nvim"
+	touch "$DATA_HOME/nvim-portable/micromamba-installed-by-nvim"
+	rm -rf "$temporary"
+	trap - RETURN
 }
 
 select_package_manager() {
-  local manager resolved
-  if [[ -x "$MANAGED_MAMBA_BIN" ]]; then
-    if "$MANAGED_MAMBA_BIN" --version >/dev/null 2>&1; then
-      PACKAGE_MANAGER_BIN="$MANAGED_MAMBA_BIN"
-      return
-    fi
-    warn "Ignoring an unusable micromamba binary at $MANAGED_MAMBA_BIN"
-  fi
+	local manager resolved
+	if [[ -x "$MANAGED_MAMBA_BIN" ]]; then
+		if "$MANAGED_MAMBA_BIN" --version >/dev/null 2>&1; then
+			PACKAGE_MANAGER_BIN="$MANAGED_MAMBA_BIN"
+			return
+		fi
+		warn "Ignoring an unusable micromamba binary at $MANAGED_MAMBA_BIN"
+	fi
 
-  for manager in micromamba mamba conda; do
-    if resolved="$(command -v "$manager" 2>/dev/null)" \
-        && "$manager" --version >/dev/null 2>&1; then
-      PACKAGE_MANAGER_BIN="$manager"
-      log "Using existing package manager: $resolved"
-      return
-    fi
-  done
+	for manager in micromamba mamba conda; do
+		if resolved="$(command -v "$manager" 2>/dev/null)" &&
+			"$manager" --version >/dev/null 2>&1; then
+			PACKAGE_MANAGER_BIN="$manager"
+			log "Using existing package manager: $resolved"
+			return
+		fi
+	done
 
-  install_micromamba
+	install_micromamba
 }
 
 install_portable_tools() {
-  select_package_manager
+	select_package_manager
 
-  local packages=(
-    "nvim>=0.12,<0.13" git curl ripgrep fd-find "tree-sitter-cli>=0.26.1" clang-tools zsh
-  )
-  if ((MINIMAL == 0)); then
-    packages+=(
-      tmux lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
-      lua-language-server pyright cmake-language-server ruff pynvim
-    )
-  elif ((INSTALL_AI_TOOLS)); then
-    # Pi package restoration needs npm even when using the minimal profile.
-    packages+=(nodejs)
-  fi
+	local packages=(
+		"nvim>=0.12,<0.13" git curl ripgrep fd-find "tree-sitter-cli>=0.26.1" clang-tools zsh
+	)
+	if ((MINIMAL == 0)); then
+		packages+=(
+			tmux lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
+			lua-language-server pyright cmake-language-server ruff pynvim
+		)
+	elif ((INSTALL_AI_TOOLS)); then
+		# Pi package restoration needs npm even when using the minimal profile.
+		packages+=(nodejs)
+	fi
 
-  log "Installing portable tools into $ENV_PREFIX"
-  if [[ -d "$ENV_PREFIX/conda-meta" ]]; then
-    "$PACKAGE_MANAGER_BIN" install -y -p "$ENV_PREFIX" -c conda-forge "${packages[@]}"
-  else
-    "$PACKAGE_MANAGER_BIN" create -y -p "$ENV_PREFIX" -c conda-forge "${packages[@]}"
-  fi
+	log "Installing portable tools into $ENV_PREFIX"
+	if [[ -d "$ENV_PREFIX/conda-meta" ]]; then
+		"$PACKAGE_MANAGER_BIN" install -y -p "$ENV_PREFIX" -c conda-forge "${packages[@]}"
+	else
+		"$PACKAGE_MANAGER_BIN" create -y -p "$ENV_PREFIX" -c conda-forge "${packages[@]}"
+	fi
 
-  # conda-forge versions clang++ (for example clang++-22) but does not always
-  # provide the unversioned compiler names unless the environment is activated.
-  # This setup intentionally works with PATH only, so create local aliases.
-  local candidate cxx=''
-  if [[ ! -x "$ENV_PREFIX/bin/clang++" ]]; then
-    for candidate in "$ENV_PREFIX"/bin/clang++-*; do
-      [[ -x "$candidate" ]] && cxx=$candidate
-    done
-    [[ -n "$cxx" ]] && ln -sfn "${cxx##*/}" "$ENV_PREFIX/bin/clang++"
-  fi
-  [[ -x "$ENV_PREFIX/bin/clang" && ! -e "$ENV_PREFIX/bin/cc" ]] && ln -s clang "$ENV_PREFIX/bin/cc"
-  [[ -x "$ENV_PREFIX/bin/clang++" && ! -e "$ENV_PREFIX/bin/c++" ]] && ln -s clang++ "$ENV_PREFIX/bin/c++"
+	# conda-forge versions clang++ (for example clang++-22) but does not always
+	# provide the unversioned compiler names unless the environment is activated.
+	# This setup intentionally works with PATH only, so create local aliases.
+	local candidate cxx=''
+	if [[ ! -x "$ENV_PREFIX/bin/clang++" ]]; then
+		for candidate in "$ENV_PREFIX"/bin/clang++-*; do
+			[[ -x "$candidate" ]] && cxx=$candidate
+		done
+		[[ -n "$cxx" ]] && ln -sfn "${cxx##*/}" "$ENV_PREFIX/bin/clang++"
+	fi
+	[[ -x "$ENV_PREFIX/bin/clang" && ! -e "$ENV_PREFIX/bin/cc" ]] && ln -s clang "$ENV_PREFIX/bin/cc"
+	[[ -x "$ENV_PREFIX/bin/clang++" && ! -e "$ENV_PREFIX/bin/c++" ]] && ln -s clang++ "$ENV_PREFIX/bin/c++"
 
-  export PATH="$ENV_PREFIX/bin:$LOCAL_BIN:$PATH"
+	export PATH="$ENV_PREFIX/bin:$LOCAL_BIN:$PATH"
 }
 
 install_ai_tools() {
-  local temporary installer
+	local temporary installer
 
-  temporary="$(mktemp -d "${TMPDIR:-/tmp}/nvim-ai-tools.XXXXXX")"
-  trap 'rm -rf "$temporary"' RETURN
+	temporary="$(mktemp -d "${TMPDIR:-/tmp}/nvim-ai-tools.XXXXXX")"
+	trap 'rm -rf "$temporary"' RETURN
 
-  if command -v codex >/dev/null 2>&1; then
-    log "Codex CLI is already installed; its updater will manage upgrades"
-  else
-    installer="$temporary/codex-install.sh"
-    log "Installing optional Codex CLI"
-    download "https://chatgpt.com/codex/install.sh" "$installer"
-    sh "$installer"
-    hash -r 2>/dev/null || true
-    command -v codex >/dev/null 2>&1 || die "Codex installer completed but codex is not on PATH"
-    mkdir -p "$DATA_HOME/nvim-portable"
-    touch "$DATA_HOME/nvim-portable/codex-installed-by-nvim"
-  fi
+	if command -v codex >/dev/null 2>&1; then
+		log "Codex CLI is already installed; its updater will manage upgrades"
+	else
+		installer="$temporary/codex-install.sh"
+		log "Installing optional Codex CLI"
+		download "https://chatgpt.com/codex/install.sh" "$installer"
+		sh "$installer"
+		hash -r 2>/dev/null || true
+		command -v codex >/dev/null 2>&1 || die "Codex installer completed but codex is not on PATH"
+		mkdir -p "$DATA_HOME/nvim-portable"
+		touch "$DATA_HOME/nvim-portable/codex-installed-by-nvim"
+	fi
 
-  # Refresh command lookup after an installer adds a new executable to PATH.
-  hash -r 2>/dev/null || true
-  if command -v claude >/dev/null 2>&1; then
-    log "Claude Code is already installed; its updater will manage upgrades"
-  else
-    installer="$temporary/claude-install.sh"
-    log "Installing optional Claude Code CLI"
-    download "https://claude.ai/install.sh" "$installer"
-    bash "$installer"
-    hash -r 2>/dev/null || true
-    command -v claude >/dev/null 2>&1 || die "Claude installer completed but claude is not on PATH"
-    mkdir -p "$DATA_HOME/nvim-portable"
-    touch "$DATA_HOME/nvim-portable/claude-installed-by-nvim"
-  fi
+	# Refresh command lookup after an installer adds a new executable to PATH.
+	hash -r 2>/dev/null || true
+	if command -v claude >/dev/null 2>&1; then
+		log "Claude Code is already installed; its updater will manage upgrades"
+	else
+		installer="$temporary/claude-install.sh"
+		log "Installing optional Claude Code CLI"
+		download "https://claude.ai/install.sh" "$installer"
+		bash "$installer"
+		hash -r 2>/dev/null || true
+		command -v claude >/dev/null 2>&1 || die "Claude installer completed but claude is not on PATH"
+		mkdir -p "$DATA_HOME/nvim-portable"
+		touch "$DATA_HOME/nvim-portable/claude-installed-by-nvim"
+	fi
 
-  hash -r 2>/dev/null || true
-  if command -v pi >/dev/null 2>&1; then
-    log "Pi agent is already installed; its updater will manage upgrades"
-  else
-    installer="$temporary/pi-install.sh"
-    log "Installing optional Pi agent CLI"
-    download "https://pi.dev/install.sh" "$installer"
-    sh "$installer"
-    hash -r 2>/dev/null || true
-    command -v pi >/dev/null 2>&1 || die "Pi installer completed but pi is not on PATH"
-    mkdir -p "$DATA_HOME/nvim-portable"
-    command -v pi > "$DATA_HOME/nvim-portable/pi-installed-by-nvim"
-  fi
+	hash -r 2>/dev/null || true
+	if command -v pi >/dev/null 2>&1; then
+		log "Pi agent is already installed; its updater will manage upgrades"
+	else
+		installer="$temporary/pi-install.sh"
+		log "Installing optional Pi agent CLI"
+		download "https://pi.dev/install.sh" "$installer"
+		sh "$installer"
+		hash -r 2>/dev/null || true
+		command -v pi >/dev/null 2>&1 || die "Pi installer completed but pi is not on PATH"
+		mkdir -p "$DATA_HOME/nvim-portable"
+		command -v pi >"$DATA_HOME/nvim-portable/pi-installed-by-nvim"
+	fi
 
-  rm -rf "$temporary"
-  trap - RETURN
+	rm -rf "$temporary"
+	trap - RETURN
 }
 
 install_agent_global_memory() {
-  local claude_dir="$HOME/.claude"
-  local codex_dir="$HOME/.codex"
-  local pi_dir="$HOME/.pi/agent"
-  local claude_memory="$claude_dir/CLAUDE.md"
-  local codex_memory="$codex_dir/AGENTS.md"
-  local pi_memory="$pi_dir/AGENTS.md"
-  local temporary
+	local claude_dir="$HOME/.claude"
+	local codex_dir="$HOME/.codex"
+	local pi_dir="$HOME/.pi/agent"
+	local claude_memory="$claude_dir/CLAUDE.md"
+	local codex_memory="$codex_dir/AGENTS.md"
+	local pi_memory="$pi_dir/AGENTS.md"
+	local temporary
 
-  temporary="$(mktemp "${TMPDIR:-/tmp}/agent-global-memory.XXXXXX")"
-  cat > "$temporary" <<'EOF'
+	temporary="$(mktemp "${TMPDIR:-/tmp}/agent-global-memory.XXXXXX")"
+	cat >"$temporary" <<'EOF'
 # CLAUDE.md
 
 ## 1. Think Before Coding
@@ -324,85 +330,85 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 EOF
 
-  mkdir -p "$claude_dir" "$codex_dir" "$pi_dir"
-  if [[ -e "$claude_memory" ]] && ! cmp -s "$temporary" "$claude_memory"; then
-    backup_once "$claude_memory"
-  fi
-  install -m 0644 "$temporary" "$claude_memory"
-  rm -f "$temporary"
+	mkdir -p "$claude_dir" "$codex_dir" "$pi_dir"
+	if [[ -e "$claude_memory" ]] && ! cmp -s "$temporary" "$claude_memory"; then
+		backup_once "$claude_memory"
+	fi
+	install -m 0644 "$temporary" "$claude_memory"
+	rm -f "$temporary"
 
-  if [[ ! -L "$codex_memory" || "$(readlink "$codex_memory" 2>/dev/null || true)" != "$claude_memory" ]]; then
-    if [[ -d "$codex_memory" ]]; then
-      die "Cannot replace directory with agent global memory link: $codex_memory"
-    fi
-    if [[ -e "$codex_memory" || -L "$codex_memory" ]]; then
-      backup_once "$codex_memory"
-      rm -f "$codex_memory"
-    fi
-    ln -s "$claude_memory" "$codex_memory"
-  fi
+	if [[ ! -L "$codex_memory" || "$(readlink "$codex_memory" 2>/dev/null || true)" != "$claude_memory" ]]; then
+		if [[ -d "$codex_memory" ]]; then
+			die "Cannot replace directory with agent global memory link: $codex_memory"
+		fi
+		if [[ -e "$codex_memory" || -L "$codex_memory" ]]; then
+			backup_once "$codex_memory"
+			rm -f "$codex_memory"
+		fi
+		ln -s "$claude_memory" "$codex_memory"
+	fi
 
-  if [[ ! -L "$pi_memory" || "$(readlink "$pi_memory" 2>/dev/null || true)" != "$claude_memory" ]]; then
-    if [[ -d "$pi_memory" ]]; then
-      die "Cannot replace directory with agent global memory link: $pi_memory"
-    fi
-    if [[ -e "$pi_memory" || -L "$pi_memory" ]]; then
-      backup_once "$pi_memory"
-      rm -f "$pi_memory"
-    fi
-    ln -s "$claude_memory" "$pi_memory"
-  fi
-  log "Installed shared agent global memory for Claude, Codex, and Pi"
+	if [[ ! -L "$pi_memory" || "$(readlink "$pi_memory" 2>/dev/null || true)" != "$claude_memory" ]]; then
+		if [[ -d "$pi_memory" ]]; then
+			die "Cannot replace directory with agent global memory link: $pi_memory"
+		fi
+		if [[ -e "$pi_memory" || -L "$pi_memory" ]]; then
+			backup_once "$pi_memory"
+			rm -f "$pi_memory"
+		fi
+		ln -s "$claude_memory" "$pi_memory"
+	fi
+	log "Installed shared agent global memory for Claude, Codex, and Pi"
 }
 
 install_pi_settings() {
-  local source_dir="$SCRIPT_DIR/pi/agent"
-  local pi_dir="$HOME/.pi/agent"
-  local relative source destination
+	local source_dir="$SCRIPT_DIR/pi/agent"
+	local pi_dir="$HOME/.pi/agent"
+	local relative source destination
 
-  [[ -d "$source_dir" ]] || die "Missing managed Pi configuration: $source_dir"
-  mkdir -p "$pi_dir"
-  while IFS= read -r relative; do
-    source="$source_dir/$relative"
-    destination="$pi_dir/$relative"
-    mkdir -p "$(dirname "$destination")"
-    if [[ -e "$destination" ]] && ! cmp -s "$source" "$destination"; then
-      backup_once "$destination"
-    fi
-    install -m 0644 "$source" "$destination"
-  done < <(cd "$source_dir" && find . -type f ! -name package.json ! -name package-lock.json -print | sed 's#^./##' | sort)
-  log "Installed Pi settings and local skills"
+	[[ -d "$source_dir" ]] || die "Missing managed Pi configuration: $source_dir"
+	mkdir -p "$pi_dir"
+	while IFS= read -r relative; do
+		source="$source_dir/$relative"
+		destination="$pi_dir/$relative"
+		mkdir -p "$(dirname "$destination")"
+		if [[ -e "$destination" ]] && ! cmp -s "$source" "$destination"; then
+			backup_once "$destination"
+		fi
+		install -m 0644 "$source" "$destination"
+	done < <(cd "$source_dir" && find . -type f ! -name package.json ! -name package-lock.json -print | sed 's#^./##' | sort)
+	log "Installed Pi settings and local skills"
 }
 
 sync_pi_packages() {
-  local source_dir="$SCRIPT_DIR/pi/agent"
-  local npm_dir="$HOME/.pi/agent/npm"
+	local source_dir="$SCRIPT_DIR/pi/agent"
+	local npm_dir="$HOME/.pi/agent/npm"
 
-  command -v pi >/dev/null 2>&1 || return 0
-  if ! command -v npm >/dev/null 2>&1; then
-    warn "npm is unavailable; Pi settings were installed but its packages could not be restored"
-    return 0
-  fi
-  mkdir -p "$npm_dir"
-  install -m 0644 "$source_dir/package.json" "$npm_dir/package.json"
-  install -m 0644 "$source_dir/package-lock.json" "$npm_dir/package-lock.json"
-  log "Restoring pinned Pi packages"
-  # Pi is supplied globally; do not install package peer declarations locally.
-  npm ci --omit=dev --legacy-peer-deps --prefix "$npm_dir"
+	command -v pi >/dev/null 2>&1 || return 0
+	if ! command -v npm >/dev/null 2>&1; then
+		warn "npm is unavailable; Pi settings were installed but its packages could not be restored"
+		return 0
+	fi
+	mkdir -p "$npm_dir"
+	install -m 0644 "$source_dir/package.json" "$npm_dir/package.json"
+	install -m 0644 "$source_dir/package-lock.json" "$npm_dir/package-lock.json"
+	log "Restoring pinned Pi packages"
+	# Pi is supplied globally; do not install package peer declarations locally.
+	npm ci --omit=dev --legacy-peer-deps --prefix "$npm_dir"
 }
 
 install_claude_settings() {
-  local claude_dir="$HOME/.claude"
-  local settings="$claude_dir/settings.json"
-  local temporary
+	local claude_dir="$HOME/.claude"
+	local settings="$claude_dir/settings.json"
+	local temporary
 
-  mkdir -p "$claude_dir"
-  temporary="$(mktemp "${TMPDIR:-/tmp}/claude-settings.XXXXXX")"
+	mkdir -p "$claude_dir"
+	temporary="$(mktemp "${TMPDIR:-/tmp}/claude-settings.XXXXXX")"
 
-  if [[ ! -s "$settings" ]]; then
-    printf '{\n  "editorMode": "vim"\n}\n' > "$temporary"
-  elif command -v python3 >/dev/null 2>&1; then
-    python3 - "$settings" "$temporary" <<'PY'
+	if [[ ! -s "$settings" ]]; then
+		printf '{\n  "editorMode": "vim"\n}\n' >"$temporary"
+	elif command -v python3 >/dev/null 2>&1; then
+		python3 - "$settings" "$temporary" <<'PY'
 import json
 import sys
 
@@ -416,164 +422,186 @@ with open(destination, "w", encoding="utf-8") as handle:
     json.dump(settings, handle, ensure_ascii=False, indent=2)
     handle.write("\n")
 PY
-  else
-    rm -f "$temporary"
-    die "python3 is required to preserve and update existing Claude settings: $settings"
-  fi
+	else
+		rm -f "$temporary"
+		die "python3 is required to preserve and update existing Claude settings: $settings"
+	fi
 
-  if [[ -e "$settings" ]] && cmp -s "$temporary" "$settings"; then
-    rm -f "$temporary"
-    log "Claude Code Vim mode is already configured"
-    return
-  fi
-  [[ -e "$settings" ]] && backup_once "$settings"
-  install -m 0600 "$temporary" "$settings"
-  rm -f "$temporary"
-  log "Configured Claude Code to use Vim mode"
+	if [[ -e "$settings" ]] && cmp -s "$temporary" "$settings"; then
+		rm -f "$temporary"
+		log "Claude Code Vim mode is already configured"
+		return
+	fi
+	[[ -e "$settings" ]] && backup_once "$settings"
+	install -m 0600 "$temporary" "$settings"
+	rm -f "$temporary"
+	log "Configured Claude Code to use Vim mode"
 }
 
 sync_shell_plugins() {
-  ((MINIMAL == 0)) || return 0
-  local plugin_root="$DATA_HOME/nvim-portable/zsh" name url destination
-  mkdir -p "$plugin_root"
-  while read -r name url; do
-    destination="$plugin_root/$name"
-    if [[ ! -d "$destination/.git" ]]; then
-      log "Installing zsh plugin: $name"
-      git clone --depth 1 "$url" "$destination"
-    elif ((UPDATE)); then
-      if [[ -n "$(git -C "$destination" status --porcelain)" ]]; then
-        warn "Skipping modified zsh plugin checkout: $destination"
-      else
-        log "Updating zsh plugin: $name"
-        git -C "$destination" pull --ff-only
-      fi
-    fi
-  done <<'EOF'
+	((MINIMAL == 0)) || return 0
+	local plugin_root="$DATA_HOME/nvim-portable/zsh" name url destination
+	mkdir -p "$plugin_root"
+	while read -r name url; do
+		destination="$plugin_root/$name"
+		if [[ ! -d "$destination/.git" ]]; then
+			log "Installing zsh plugin: $name"
+			git clone --depth 1 "$url" "$destination"
+		elif ((UPDATE)); then
+			if [[ -n "$(git -C "$destination" status --porcelain)" ]]; then
+				warn "Skipping modified zsh plugin checkout: $destination"
+			else
+				log "Updating zsh plugin: $name"
+				git -C "$destination" pull --ff-only
+			fi
+		fi
+	done <<'EOF'
 zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
 fast-syntax-highlighting https://github.com/zdharma-continuum/fast-syntax-highlighting.git
 EOF
 }
 
 backup_once() {
-  local path=$1
-  [[ ! -e "$path" || -e "$path.pre-nvim-dotfiles" ]] || cp -p "$path" "$path.pre-nvim-dotfiles"
+	local path=$1
+	[[ ! -e "$path" || -e "$path.pre-nvim-dotfiles" ]] || cp -p "$path" "$path.pre-nvim-dotfiles"
 }
 
 install_managed_block() {
-  local destination=$1 block=$2 start='# >>> portable-nvim >>>' end='# <<< portable-nvim <<<' temporary
-  mkdir -p "$(dirname "$destination")"
-  touch "$destination"
-  if grep -Fq "$start" "$destination"; then
-    temporary="$(mktemp "${TMPDIR:-/tmp}/nvim-shell.XXXXXX")"
-    awk -v start="$start" -v end="$end" '
+	local destination=$1 block=$2 start='# >>> portable-nvim >>>' end='# <<< portable-nvim <<<' temporary
+	mkdir -p "$(dirname "$destination")"
+	touch "$destination"
+	if grep -Fq "$start" "$destination"; then
+		temporary="$(mktemp "${TMPDIR:-/tmp}/nvim-shell.XXXXXX")"
+		awk -v start="$start" -v end="$end" '
       $0 == start { skipping=1; next }
       $0 == end { skipping=0; next }
       !skipping { print }
-    ' "$destination" > "$temporary"
-    mv "$temporary" "$destination"
-  else
-    backup_once "$destination"
-  fi
-  printf '\n%s\n%s\n%s\n' "$start" "$block" "$end" >> "$destination"
+    ' "$destination" >"$temporary"
+		mv "$temporary" "$destination"
+	else
+		backup_once "$destination"
+	fi
+	printf '\n%s\n%s\n%s\n' "$start" "$block" "$end" >>"$destination"
 }
 
 link_config() {
-  mkdir -p "$(dirname "$CONFIG_DIR")"
-  if [[ "$SCRIPT_DIR" == "$CONFIG_DIR" ]]; then
-    return
-  fi
-  if [[ -L "$CONFIG_DIR" && "$(cd -- "$CONFIG_DIR" && pwd -P)" == "$SCRIPT_DIR" ]]; then
-    return
-  fi
-  if [[ -e "$CONFIG_DIR" || -L "$CONFIG_DIR" ]]; then
-    local backup="${CONFIG_DIR}.backup.$(date +%Y%m%d-%H%M%S)"
-    warn "Moving existing Neovim config to $backup"
-    mv "$CONFIG_DIR" "$backup"
-  fi
-  ln -s "$SCRIPT_DIR" "$CONFIG_DIR"
+	mkdir -p "$(dirname "$CONFIG_DIR")"
+	if [[ "$SCRIPT_DIR" == "$CONFIG_DIR" ]]; then
+		return
+	fi
+	if [[ -L "$CONFIG_DIR" && "$(cd -- "$CONFIG_DIR" && pwd -P)" == "$SCRIPT_DIR" ]]; then
+		return
+	fi
+	if [[ -e "$CONFIG_DIR" || -L "$CONFIG_DIR" ]]; then
+		local backup="${CONFIG_DIR}.backup.$(date +%Y%m%d-%H%M%S)"
+		warn "Moving existing Neovim config to $backup"
+		mv "$CONFIG_DIR" "$backup"
+	fi
+	ln -s "$SCRIPT_DIR" "$CONFIG_DIR"
 }
 
 install_shell_config() {
-  local source_line='[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/nvim/shell/common.sh" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}/nvim/shell/common.sh"'
-  install_managed_block "$HOME/.zshrc" "$source_line
+	local source_line='[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/nvim/shell/common.sh" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}/nvim/shell/common.sh"'
+	install_managed_block "$HOME/.zshrc" "$source_line
 [ -r \"\${XDG_CONFIG_HOME:-\$HOME/.config}/nvim/shell/zshrc\" ] && . \"\${XDG_CONFIG_HOME:-\$HOME/.config}/nvim/shell/zshrc\""
-  install_managed_block "$HOME/.bashrc" "$source_line
+	install_managed_block "$HOME/.bashrc" "$source_line
 [ -r \"\${XDG_CONFIG_HOME:-\$HOME/.config}/nvim/shell/bashrc\" ] && . \"\${XDG_CONFIG_HOME:-\$HOME/.config}/nvim/shell/bashrc\""
-  install_managed_block "$HOME/.tmux.conf" "source-file \"$CONFIG_DIR/tmux.conf\""
+	install_managed_block "$HOME/.tmux.conf" "source-file \"$CONFIG_DIR/tmux.conf\""
 
-  local fish_dir="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d"
-  local fish_file="$fish_dir/portable-nvim.fish"
-  mkdir -p "$fish_dir"
-  backup_once "$fish_file"
-  ln -sfn "$CONFIG_DIR/shell/config.fish" "$fish_file"
+	local fish_dir="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d"
+	local fish_file="$fish_dir/portable-nvim.fish"
+	mkdir -p "$fish_dir"
+	backup_once "$fish_file"
+	ln -sfn "$CONFIG_DIR/shell/config.fish" "$fish_file"
 }
 
 install_yazi_config() {
-  local yazi_dir="$CONFIG_HOME/yazi"
-  local yazi_file="$yazi_dir/yazi.toml"
-  local yazi_source="$CONFIG_DIR/yazi/yazi.toml"
-  mkdir -p "$yazi_dir"
-  if [[ -L "$yazi_file" && "$(readlink "$yazi_file")" == "$yazi_source" ]]; then
-    return
-  fi
-  backup_once "$yazi_file"
-  ln -sfn "$yazi_source" "$yazi_file"
-  log "Installed Yazi configuration"
+	local yazi_dir="$CONFIG_HOME/yazi"
+	local yazi_file="$yazi_dir/yazi.toml"
+	local yazi_source="$CONFIG_DIR/yazi/yazi.toml"
+	mkdir -p "$yazi_dir"
+	if [[ -L "$yazi_file" && "$(readlink "$yazi_file")" == "$yazi_source" ]]; then
+		return
+	fi
+	backup_once "$yazi_file"
+	ln -sfn "$yazi_source" "$yazi_file"
+	log "Installed Yazi configuration"
+}
+
+install_lazygit_config() {
+	local lazygit_dir lazygit_file
+	local lazygit_source="$CONFIG_DIR/lazygit/config.yml"
+
+	if command -v lazygit >/dev/null 2>&1; then
+		lazygit_dir="$(lazygit --print-config-dir)"
+	elif [[ "$(uname -s)" == Darwin ]]; then
+		lazygit_dir="$HOME/Library/Application Support/lazygit"
+	else
+		lazygit_dir="$CONFIG_HOME/lazygit"
+	fi
+	lazygit_file="$lazygit_dir/config.yml"
+	mkdir -p "$lazygit_dir"
+	if [[ -L "$lazygit_file" && "$(readlink "$lazygit_file")" == "$lazygit_source" ]]; then
+		return
+	fi
+	backup_once "$lazygit_file"
+	ln -sfn "$lazygit_source" "$lazygit_file"
+	log "Installed LazyGit configuration"
 }
 
 sync_plugins() {
-  have_modern_nvim || die "Neovim 0.12.x is required by this configuration"
-  local active_config
-  active_config="$(nvim --clean --headless -i NONE \
-    "+lua io.stdout:write(vim.fn.stdpath('config'))" +qa 2>/dev/null)"
-  [[ "$active_config" == "$CONFIG_DIR" ]] || die \
-    "Neovim is using $active_config instead of $CONFIG_DIR (check NVIM_APPNAME and XDG_CONFIG_HOME)"
-  nvim --headless -i NONE \
-    "+lua if vim.g.portable_nvim_loaded ~= 1 then vim.cmd('cquit') end" +qa \
-    >/dev/null 2>&1 || die "Neovim could not fully load $CONFIG_DIR/init.lua"
+	have_modern_nvim || die "Neovim 0.12.x is required by this configuration"
+	local active_config
+	active_config="$(nvim --clean --headless -i NONE \
+		"+lua io.stdout:write(vim.fn.stdpath('config'))" +qa 2>/dev/null)"
+	[[ "$active_config" == "$CONFIG_DIR" ]] || die \
+		"Neovim is using $active_config instead of $CONFIG_DIR (check NVIM_APPNAME and XDG_CONFIG_HOME)"
+	nvim --headless -i NONE \
+		"+lua if vim.g.portable_nvim_loaded ~= 1 then vim.cmd('cquit') end" +qa \
+		>/dev/null 2>&1 || die "Neovim could not fully load $CONFIG_DIR/init.lua"
 
-  if ((UPDATE)); then
-    log "Updating lazy.nvim plugins"
-    nvim --headless "+Lazy! update" +qa
-    log "Updating Treesitter parsers"
-    nvim --headless -i NONE "+PortableTSUpdate" +qa
-  else
-    log "Synchronizing lazy.nvim plugins"
-    nvim --headless "+Lazy! sync" +qa
-    log "Installing pinned Treesitter parsers"
-    nvim --headless -i NONE "+PortableTSInstall" +qa
-  fi
+	if ((UPDATE)); then
+		log "Updating lazy.nvim plugins"
+		nvim --headless "+Lazy! update" +qa
+		log "Updating Treesitter parsers"
+		nvim --headless -i NONE "+PortableTSUpdate" +qa
+	else
+		log "Synchronizing lazy.nvim plugins"
+		nvim --headless "+Lazy! sync" +qa
+		log "Installing pinned Treesitter parsers"
+		nvim --headless -i NONE "+PortableTSInstall" +qa
+	fi
 }
 
 main() {
-  if ((EUID == 0)) && [[ -n ${SUDO_USER:-} ]]; then
-    die "Do not run this installer with sudo; run it as your normal user ($SUDO_USER)"
-  fi
-  link_config
-  install_agent_global_memory
-  install_claude_settings
-  install_pi_settings
-  export PATH="$LOCAL_BIN:$PATH"
-  [[ -d "$ENV_PREFIX/bin" ]] && export PATH="$ENV_PREFIX/bin:$PATH"
-  if ((INSTALL_PACKAGES)) && { ((UPDATE)) && [[ -d "$ENV_PREFIX/conda-meta" ]] || need_portable_env; }; then
-    install_portable_tools
-  elif ((INSTALL_PACKAGES)); then
-    log "Required tools are already available; skipping portable environment"
-  fi
-  ((INSTALL_SHELL)) && sync_shell_plugins
-  ((INSTALL_SHELL)) && install_shell_config
-  ((MINIMAL == 0)) && install_yazi_config
-  ((INSTALL_AI_TOOLS)) && install_ai_tools
-  sync_pi_packages
-  ((SYNC_PLUGINS)) && sync_plugins
+	if ((EUID == 0)) && [[ -n ${SUDO_USER:-} ]]; then
+		die "Do not run this installer with sudo; run it as your normal user ($SUDO_USER)"
+	fi
+	link_config
+	install_agent_global_memory
+	install_claude_settings
+	install_pi_settings
+	export PATH="$LOCAL_BIN:$PATH"
+	[[ -d "$ENV_PREFIX/bin" ]] && export PATH="$ENV_PREFIX/bin:$PATH"
+	if ((INSTALL_PACKAGES)) && { ((UPDATE)) && [[ -d "$ENV_PREFIX/conda-meta" ]] || need_portable_env; }; then
+		install_portable_tools
+	elif ((INSTALL_PACKAGES)); then
+		log "Required tools are already available; skipping portable environment"
+	fi
+	((INSTALL_SHELL)) && sync_shell_plugins
+	((INSTALL_SHELL)) && install_shell_config
+	((MINIMAL == 0)) && install_yazi_config
+	((MINIMAL == 0)) && install_lazygit_config
+	((INSTALL_AI_TOOLS)) && install_ai_tools
+	sync_pi_packages
+	((SYNC_PLUGINS)) && sync_plugins
 
-  log "Installation complete"
-  printf '    Restart your shell, then run: nvim\n'
-  if ((INSTALL_AI_TOOLS)); then
-    printf '    Run codex, claude, and pi once to complete their individual sign-in flows.\n'
-  fi
-  printf '    Check the environment with: %s/bin/nvim-doctor\n' "$CONFIG_DIR"
+	log "Installation complete"
+	printf '    Restart your shell, then run: nvim\n'
+	if ((INSTALL_AI_TOOLS)); then
+		printf '    Run codex, claude, and pi once to complete their individual sign-in flows.\n'
+	fi
+	printf '    Check the environment with: %s/bin/nvim-doctor\n' "$CONFIG_DIR"
 }
 
 main

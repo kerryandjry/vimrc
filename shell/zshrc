@@ -102,6 +102,36 @@ vf() {
 }
 
 export GPG_TTY="$(tty 2>/dev/null)"
+
+# Finder drops are bracketed pastes. In an SSH tmux pane, recognize pasted Mac
+# paths and send them through the reverse tunnel to the local SCP drop service.
+_portable_bracketed_paste() {
+  local request_bin="${XDG_CONFIG_HOME:-$HOME/.config}/nvim/bin/tmux-drop-request"
+  local host_entry output rc PASTED
+  # Ask the builtin widget to capture, rather than insert, the bracketed text.
+  zle .bracketed-paste PASTED
+  if [[ -n ${TMUX:-} && -n ${SSH_CONNECTION:-} && -x $request_bin ]]; then
+    host_entry=$(tmux show-environment -g KITTY_DROP_HOST 2>/dev/null)
+    if [[ $host_entry == KITTY_DROP_HOST=* ]]; then
+      output=$("$request_bin" "${host_entry#*=}" "$PWD" "$PASTED" 2>&1)
+      rc=$?
+      case $rc in
+        0)
+          zle -M "SCP upload request sent for ${host_entry#*=}:$PWD"
+          return
+          ;;
+        3) ;; # Not a Finder path; paste normally.
+        *)
+          zle -M "${output:-SCP upload request failed}"
+          return
+          ;;
+      esac
+    fi
+  fi
+  LBUFFER+=$PASTED
+}
+zle -N bracketed-paste _portable_bracketed_paste
+
 if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi

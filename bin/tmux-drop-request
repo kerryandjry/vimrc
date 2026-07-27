@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Send a remote tmux drag-and-drop request to the Mac-side SCP bridge."""
+
+from __future__ import annotations
+
+import json
+import shlex
+import socket
+import sys
+
+HOST = "127.0.0.1"
+PORT = 45873
+
+
+def main() -> int:
+    if len(sys.argv) != 4:
+        print("usage: tmux-drop-request HOST DESTINATION PASTED_TEXT", file=sys.stderr)
+        return 2
+    host, destination, pasted = sys.argv[1:]
+    try:
+        files = shlex.split(pasted)
+    except ValueError:
+        return 3
+    if not files or not all(path.startswith(("/Users/", "/Volumes/", "/private/")) for path in files):
+        return 3
+
+    request = json.dumps(
+        {"host": host, "destination": destination, "files": files},
+        ensure_ascii=False,
+    ).encode("utf-8") + b"\n"
+    try:
+        with socket.create_connection((HOST, PORT), timeout=2) as connection:
+            connection.sendall(request)
+            response = b""
+            while not response.endswith(b"\n") and len(response) < 65536:
+                chunk = connection.recv(4096)
+                if not chunk:
+                    break
+                response += chunk
+    except OSError as error:
+        print(f"SCP drop bridge unavailable: {error}", file=sys.stderr)
+        return 1
+
+    try:
+        result = json.loads(response)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        print("SCP drop bridge returned an invalid response", file=sys.stderr)
+        return 1
+    if not result.get("ok"):
+        print(result.get("error", "SCP drop request failed"), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
