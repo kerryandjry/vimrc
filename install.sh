@@ -13,13 +13,7 @@ readonly ENV_PREFIX="${NVIM_ENV_PREFIX:-$DATA_HOME/nvim-portable/env}"
 readonly MANAGED_MAMBA_BIN="$LOCAL_BIN/micromamba"
 
 PACKAGE_MANAGER_BIN=''
-
-INSTALL_PACKAGES=1
-INSTALL_SHELL=1
-SYNC_PLUGINS=1
-INSTALL_AI_TOOLS=0
-MINIMAL=0
-UPDATE=0
+EXISTING_INSTALL=0
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
@@ -28,41 +22,7 @@ die() {
 	exit 1
 }
 
-usage() {
-	cat <<'EOF'
-Usage: ./install.sh [options]
-
-  --minimal       Install only Neovim and command-line essentials
-  --update        Update the managed tools, plugins, and Treesitter parsers
-  --no-packages   Do not install missing command-line tools
-  --no-shell      Do not add managed blocks to shell/tmux configuration
-  --no-plugins    Do not run lazy.nvim sync
-  --with-ai-tools Install the optional Codex, Claude Code, and Pi agent CLIs
-  -h, --help      Show this help
-
-Environment:
-  NVIM_ENV_PREFIX   Override the user-local tool environment directory
-  XDG_CONFIG_HOME   Override ~/.config
-  XDG_DATA_HOME     Override ~/.local/share
-EOF
-}
-
-while (($#)); do
-	case "$1" in
-	--minimal) MINIMAL=1 ;;
-	--update) UPDATE=1 ;;
-	--no-packages) INSTALL_PACKAGES=0 ;;
-	--no-shell) INSTALL_SHELL=0 ;;
-	--no-plugins) SYNC_PLUGINS=0 ;;
-	--with-ai-tools) INSTALL_AI_TOOLS=1 ;;
-	-h | --help)
-		usage
-		exit 0
-		;;
-	*) die "Unknown option: $1 (try --help)" ;;
-	esac
-	shift
-done
+(($# == 0)) || die "install.sh does not accept options; run it without arguments"
 
 download() {
 	local url=$1 destination=$2
@@ -79,36 +39,6 @@ have_modern_nvim() {
 	command -v nvim >/dev/null 2>&1 || return 1
 	nvim --clean --headless "+lua if vim.fn.has('nvim-0.12') ~= 1 then vim.cmd('cquit') end" +qa \
 		>/dev/null 2>&1
-}
-
-have_tmux_passthrough() {
-	command -v tmux >/dev/null 2>&1 || return 1
-	local version
-	version="$(tmux -V 2>/dev/null)" || return 1
-	[[ "$version" =~ ^tmux[[:space:]]+([0-9]+)\.([0-9]+) ]] || return 1
-	((BASH_REMATCH[1] > 3 || (BASH_REMATCH[1] == 3 && BASH_REMATCH[2] >= 3)))
-}
-
-need_portable_env() {
-	have_modern_nvim || return 0
-	local command_name
-	for command_name in git rg fd cc zsh; do
-		command -v "$command_name" >/dev/null 2>&1 || return 0
-	done
-	if ((MINIMAL == 0)); then
-		for command_name in lazygit yazi clangd lua-language-server pyright-langserver cmake-language-server ruff tree-sitter starship; do
-			command -v "$command_name" >/dev/null 2>&1 || return 0
-		done
-		have_tmux_passthrough || return 0
-		command -v clang++ >/dev/null 2>&1 || command -v g++ >/dev/null 2>&1 || return 0
-	fi
-	if ((INSTALL_AI_TOOLS)); then
-		command -v npm >/dev/null 2>&1 || return 0
-		command -v node >/dev/null 2>&1 || return 0
-		node -e 'const [a,b,c]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&(b>19||(b===19&&c>=0)))?0:1)' \
-			>/dev/null 2>&1 || return 0
-	fi
-	return 1
 }
 
 install_micromamba() {
@@ -180,20 +110,15 @@ install_portable_tools() {
 
 	local packages=(
 		"nvim>=0.12,<0.13" git curl ripgrep fd-find "tree-sitter-cli>=0.26.1" clang-tools zsh
+		"tmux>=3.3" lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
+		lua-language-server pyright cmake-language-server ruff pynvim
 	)
-	if ((MINIMAL == 0)); then
-		packages+=(
-			"tmux>=3.3" lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
-			lua-language-server pyright cmake-language-server ruff pynvim
-		)
-	elif ((INSTALL_AI_TOOLS)); then
-		# Pi package restoration needs npm even when using the minimal profile.
-		packages+=(nodejs)
-	fi
 
 	log "Installing portable tools into $ENV_PREFIX"
-	if [[ -d "$ENV_PREFIX/conda-meta" ]]; then
+	if ((EXISTING_INSTALL)); then
 		"$PACKAGE_MANAGER_BIN" install -y -p "$ENV_PREFIX" -c conda-forge "${packages[@]}"
+		log "Updating all portable packages"
+		"$PACKAGE_MANAGER_BIN" update -y -p "$ENV_PREFIX" -c conda-forge --all
 	else
 		"$PACKAGE_MANAGER_BIN" create -y -p "$ENV_PREFIX" -c conda-forge "${packages[@]}"
 	fi
@@ -220,47 +145,30 @@ install_ai_tools() {
 	temporary="$(mktemp -d "${TMPDIR:-/tmp}/nvim-ai-tools.XXXXXX")"
 	trap 'rm -rf "$temporary"' RETURN
 
-	if command -v codex >/dev/null 2>&1; then
-		log "Codex CLI is already installed; its updater will manage upgrades"
-	else
-		installer="$temporary/codex-install.sh"
-		log "Installing optional Codex CLI"
-		download "https://chatgpt.com/codex/install.sh" "$installer"
-		sh "$installer"
-		hash -r 2>/dev/null || true
-		command -v codex >/dev/null 2>&1 || die "Codex installer completed but codex is not on PATH"
-		mkdir -p "$DATA_HOME/nvim-portable"
-		touch "$DATA_HOME/nvim-portable/codex-installed-by-nvim"
-	fi
-
-	# Refresh command lookup after an installer adds a new executable to PATH.
+	installer="$temporary/codex-install.sh"
+	log "Installing or updating Codex CLI"
+	download "https://chatgpt.com/codex/install.sh" "$installer"
+	sh "$installer"
 	hash -r 2>/dev/null || true
-	if command -v claude >/dev/null 2>&1; then
-		log "Claude Code is already installed; its updater will manage upgrades"
-	else
-		installer="$temporary/claude-install.sh"
-		log "Installing optional Claude Code CLI"
-		download "https://claude.ai/install.sh" "$installer"
-		bash "$installer"
-		hash -r 2>/dev/null || true
-		command -v claude >/dev/null 2>&1 || die "Claude installer completed but claude is not on PATH"
-		mkdir -p "$DATA_HOME/nvim-portable"
-		touch "$DATA_HOME/nvim-portable/claude-installed-by-nvim"
-	fi
+	command -v codex >/dev/null 2>&1 || die "Codex installer completed but codex is not on PATH"
+	mkdir -p "$DATA_HOME/nvim-portable"
+	touch "$DATA_HOME/nvim-portable/codex-installed-by-nvim"
 
+	installer="$temporary/claude-install.sh"
+	log "Installing or updating Claude Code CLI"
+	download "https://claude.ai/install.sh" "$installer"
+	bash "$installer"
 	hash -r 2>/dev/null || true
-	if command -v pi >/dev/null 2>&1; then
-		log "Pi agent is already installed; its updater will manage upgrades"
-	else
-		installer="$temporary/pi-install.sh"
-		log "Installing optional Pi agent CLI"
-		download "https://pi.dev/install.sh" "$installer"
-		sh "$installer"
-		hash -r 2>/dev/null || true
-		command -v pi >/dev/null 2>&1 || die "Pi installer completed but pi is not on PATH"
-		mkdir -p "$DATA_HOME/nvim-portable"
-		command -v pi >"$DATA_HOME/nvim-portable/pi-installed-by-nvim"
-	fi
+	command -v claude >/dev/null 2>&1 || die "Claude installer completed but claude is not on PATH"
+	touch "$DATA_HOME/nvim-portable/claude-installed-by-nvim"
+
+	installer="$temporary/pi-install.sh"
+	log "Installing or updating Pi agent CLI"
+	download "https://pi.dev/install.sh" "$installer"
+	sh "$installer"
+	hash -r 2>/dev/null || true
+	command -v pi >/dev/null 2>&1 || die "Pi installer completed but pi is not on PATH"
+	command -v pi >"$DATA_HOME/nvim-portable/pi-installed-by-nvim"
 
 	rm -rf "$temporary"
 	trap - RETURN
@@ -448,7 +356,6 @@ PY
 }
 
 sync_shell_plugins() {
-	((MINIMAL == 0)) || return 0
 	local plugin_root="$DATA_HOME/nvim-portable/zsh" name url destination
 	mkdir -p "$plugin_root"
 	while read -r name url; do
@@ -456,13 +363,11 @@ sync_shell_plugins() {
 		if [[ ! -d "$destination/.git" ]]; then
 			log "Installing zsh plugin: $name"
 			git clone --depth 1 "$url" "$destination"
-		elif ((UPDATE)); then
-			if [[ -n "$(git -C "$destination" status --porcelain)" ]]; then
-				warn "Skipping modified zsh plugin checkout: $destination"
-			else
-				log "Updating zsh plugin: $name"
-				git -C "$destination" pull --ff-only
-			fi
+		elif [[ -n "$(git -C "$destination" status --porcelain)" ]]; then
+			warn "Skipping modified zsh plugin checkout: $destination"
+		else
+			log "Updating zsh plugin: $name"
+			git -C "$destination" pull --ff-only
 		fi
 	done <<'EOF'
 zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
@@ -569,7 +474,7 @@ sync_plugins() {
 		"+lua if vim.g.portable_nvim_loaded ~= 1 then vim.cmd('cquit') end" +qa \
 		>/dev/null 2>&1 || die "Neovim could not fully load $CONFIG_DIR/init.lua"
 
-	if ((UPDATE)); then
+	if ((EXISTING_INSTALL)); then
 		log "Updating lazy.nvim plugins"
 		nvim --headless "+Lazy! update" +qa
 		log "Updating Treesitter parsers"
@@ -586,30 +491,25 @@ main() {
 	if ((EUID == 0)) && [[ -n ${SUDO_USER:-} ]]; then
 		die "Do not run this installer with sudo; run it as your normal user ($SUDO_USER)"
 	fi
+	[[ -d "$ENV_PREFIX/conda-meta" ]] && EXISTING_INSTALL=1
 	link_config
 	install_agent_global_memory
 	install_claude_settings
 	install_pi_settings
 	export PATH="$LOCAL_BIN:$PATH"
 	[[ -d "$ENV_PREFIX/bin" ]] && export PATH="$ENV_PREFIX/bin:$PATH"
-	if ((INSTALL_PACKAGES)) && { ((UPDATE)) && [[ -d "$ENV_PREFIX/conda-meta" ]] || need_portable_env; }; then
-		install_portable_tools
-	elif ((INSTALL_PACKAGES)); then
-		log "Required tools are already available; skipping portable environment"
-	fi
-	((INSTALL_SHELL)) && sync_shell_plugins
-	((INSTALL_SHELL)) && install_shell_config
-	((MINIMAL == 0)) && install_yazi_config
-	((MINIMAL == 0)) && install_lazygit_config
-	((INSTALL_AI_TOOLS)) && install_ai_tools
+	install_portable_tools
+	sync_shell_plugins
+	install_shell_config
+	install_yazi_config
+	install_lazygit_config
+	install_ai_tools
 	sync_pi_packages
-	((SYNC_PLUGINS)) && sync_plugins
+	sync_plugins
 
 	log "Installation complete"
 	printf '    Restart your shell, then run: nvim\n'
-	if ((INSTALL_AI_TOOLS)); then
-		printf '    Run codex, claude, and pi once to complete their individual sign-in flows.\n'
-	fi
+	printf '    Run codex, claude, and pi once to complete their individual sign-in flows.\n'
 	printf '    Check the environment with: %s/bin/nvim-doctor\n' "$CONFIG_DIR"
 }
 

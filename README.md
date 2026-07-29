@@ -24,26 +24,23 @@ The full installation also links the repository's Yazi configuration to
 `~/.config/yazi/yazi.toml`, preserving an existing file once as
 `yazi.toml.pre-nvim-dotfiles`.
 
-### Useful variants
+### Installation behavior
 
 ```sh
-./install.sh --minimal       # editor plus core search tools only
-./install.sh --update        # update tools, plugins, and Treesitter parsers
-./install.sh --no-shell      # leave zsh/bash/fish/tmux untouched
-./install.sh --no-packages   # use tools already installed by the system
-./install.sh --no-plugins    # skip the initial lazy.nvim sync
-./install.sh --with-ai-tools # also install the optional Codex, Claude Code, and Pi agent CLIs
-./bin/nvim-doctor            # show missing and active tools
+./install.sh          # install everything, or update an existing installation
+./bin/nvim-doctor     # show missing and active tools
 ```
 
-`--with-ai-tools` uses the official installers and only installs a CLI when its
-command is missing. Codex, Claude Code, and Pi manage their own updates outside
-the bootstrap lifecycle. The repository restores Pi's global settings, shared
-agent memory, PDF skill, and pinned extension packages from `pi/agent/`.
-Authentication, API keys, trust decisions, and session history remain
-machine-specific and are deliberately not committed: run `codex`, `claude`, and
-`pi` after installation to complete their separate sign-in flows. The option is
-not enabled by default, including with `--minimal`.
+The installer intentionally has no command-line options. Its first run installs
+the complete portable environment, shell configuration, plugins, Treesitter
+parsers, and the Codex, Claude Code, and Pi agent CLIs. Later runs update all
+managed packages, shell plugins, editor plugins, parsers, and AI CLIs.
+
+The AI CLIs use their official installers. The repository restores Pi's global
+settings, shared agent memory, PDF skill, and pinned extension packages from
+`pi/agent/`. Authentication, API keys, trust decisions, and session history
+remain machine-specific and are deliberately not committed: run `codex`,
+`claude`, and `pi` after installation to complete their separate sign-in flows.
 
 Missing dependencies are installed from conda-forge into
 `~/.local/share/nvim-portable/env`. The bootstrap reuses an available
@@ -72,7 +69,7 @@ terminal, so no font is needed on the server.
 ```sh
 cd ~/.config/nvim
 git pull --ff-only
-./install.sh --update
+./install.sh
 ```
 
 `lazy-lock.json` pins plugin revisions, making installations reproducible.
