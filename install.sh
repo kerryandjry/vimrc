@@ -81,6 +81,14 @@ have_modern_nvim() {
 		>/dev/null 2>&1
 }
 
+have_tmux_passthrough() {
+	command -v tmux >/dev/null 2>&1 || return 1
+	local version
+	version="$(tmux -V 2>/dev/null)" || return 1
+	[[ "$version" =~ ^tmux[[:space:]]+([0-9]+)\.([0-9]+) ]] || return 1
+	((BASH_REMATCH[1] > 3 || (BASH_REMATCH[1] == 3 && BASH_REMATCH[2] >= 3)))
+}
+
 need_portable_env() {
 	have_modern_nvim || return 0
 	local command_name
@@ -91,6 +99,7 @@ need_portable_env() {
 		for command_name in lazygit yazi clangd lua-language-server pyright-langserver cmake-language-server ruff tree-sitter starship; do
 			command -v "$command_name" >/dev/null 2>&1 || return 0
 		done
+		have_tmux_passthrough || return 0
 		command -v clang++ >/dev/null 2>&1 || command -v g++ >/dev/null 2>&1 || return 0
 	fi
 	if ((INSTALL_AI_TOOLS)); then
@@ -174,7 +183,7 @@ install_portable_tools() {
 	)
 	if ((MINIMAL == 0)); then
 		packages+=(
-			tmux lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
+			"tmux>=3.3" lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
 			lua-language-server pyright cmake-language-server ruff pynvim
 		)
 	elif ((INSTALL_AI_TOOLS)); then
