@@ -9,6 +9,8 @@
   "packages": [
     "npm:@vigolium/piolium",
     "npm:pi-mcp-adapter",
-    "npm:pi-web-access"
+    "npm:pi-web-access",
+    "npm:pi-vim",
+    "./pi-ime-focus"
   ]
 }

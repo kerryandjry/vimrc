@@ -89,27 +89,3 @@ keymap.set("n", "<leader>d", function()
     vim.cmd("BufferClose!")
   end
 end, { noremap = true, silent = true, desc = "close buf" })
-
--- automactic switch to US afer entering normal mode in vim --
-local ime_switch_available = vim.fn.has("mac") == 1 and vim.fn.executable("hs") == 1
-local function set_ime_us()
-  vim.fn.jobstart({
-    "hs", "-c", 'hs.keycodes.currentSourceID("com.apple.keylayout.US")'
-  }, { detach = true })
-end
-
-local ime_timer = nil
-if ime_switch_available then
-  vim.api.nvim_create_autocmd("InsertLeave", {
-    callback = function()
-      -- debounce: 50ms 內多次觸發只做一次
-      if ime_timer then
-        ime_timer:stop(); ime_timer:close()
-      end
-      ime_timer = vim.loop.new_timer()
-      ime_timer:start(50, 0, vim.schedule_wrap(function()
-        set_ime_us()
-      end))
-    end,
-  })
-end

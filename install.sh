@@ -293,8 +293,8 @@ install_pi_settings() {
 			backup_once "$destination"
 		fi
 		install -m 0644 "$source" "$destination"
-	done < <(cd "$source_dir" && find . -type f ! -name package.json ! -name package-lock.json -print | sed 's#^./##' | sort)
-	log "Installed Pi settings and local skills"
+	done < <(cd "$source_dir" && find . -type f ! -path './package.json' ! -path './package-lock.json' -print | sed 's#^./##' | sort)
+	log "Installed Pi settings, local extensions, and local skills"
 }
 
 sync_pi_packages() {
@@ -421,6 +421,9 @@ install_shell_config() {
 	install_managed_block "$HOME/.bashrc" "$source_line
 [ -r \"\${XDG_CONFIG_HOME:-\$HOME/.config}/nvim/shell/bashrc\" ] && . \"\${XDG_CONFIG_HOME:-\$HOME/.config}/nvim/shell/bashrc\""
 	install_managed_block "$HOME/.tmux.conf" "source-file \"$CONFIG_DIR/tmux.conf\""
+	if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
+		tmux source-file "$HOME/.tmux.conf" || warn "Could not reload the running tmux server"
+	fi
 
 	local fish_dir="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d"
 	local fish_file="$fish_dir/portable-nvim.fish"

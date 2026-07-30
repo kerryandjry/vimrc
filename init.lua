@@ -11,12 +11,19 @@ local hammerspoon_cli = vim.env.TERMINAL_AUTO_ENGLISH == "1"
 	or ""
 if hammerspoon_cli ~= "" then
 	local input_source_group = vim.api.nvim_create_augroup("EnglishNormalMode", { clear = true })
-	vim.api.nvim_create_autocmd({ "VimEnter", "InsertLeave", "CmdlineLeave" }, {
+	vim.api.nvim_create_autocmd({ "VimEnter", "InsertLeave", "CmdlineLeave", "FocusGained" }, {
 		group = input_source_group,
-		callback = function()
+		callback = function(event)
+			-- FocusGained also fires while editing text; preserve the user's IME in
+			-- Insert/Replace and command-line modes, but restore English otherwise.
+			if event.event == "FocusGained"
+				and (vim.fn.mode():match("^[iR]") or vim.fn.getcmdtype() ~= "")
+			then
+				return
+			end
 			vim.fn.jobstart({ hammerspoon_cli, "-c", "setEnglishInputSource()" }, { detach = true })
 		end,
-		desc = "Use the US input source in Normal mode",
+		desc = "Use the US input source in non-insert modes",
 	})
 end
 
