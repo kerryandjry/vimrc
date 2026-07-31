@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Pick a URL from the current tmux pane and open it in the default browser.
+#
+# Kitty cannot detect plain-text URLs that soft-wrap across lines inside tmux:
+# tmux redraws each row as a hard line, so the terminal never sees the wrap.
+# `tmux capture-pane -J` re-joins wrapped lines, which restores the full URL.
+set -euo pipefail
+
+# Launched from Kitty's GUI (cmd+click) the PATH can lack the portable tmux/fzf.
+case ":$PATH:" in
+  *":$HOME/.local/share/nvim-portable/env/bin:"*) ;;
+  *) PATH="$HOME/.local/share/nvim-portable/env/bin:$PATH" ;;
+esac
+
+usage() { printf 'usage: %s [pane-id] | --pick FILE\n' "${0##*/}" >&2; exit 2; }
+
+opener() {
+  if [[ "$(uname -s)" == Darwin ]]; then open "$@"; else xdg-open "$@"; fi
+}
+
+pick_and_open() {
+  local urls_file=$1 chosen
+  trap 'rm -f "$urls_file"' EXIT
+  chosen="$(fzf --tac --prompt='Open URL> ' --height=100% < "$urls_file")" || exit 0
+  [[ -n "$chosen" ]] && opener "$chosen"
+}
+
+if [[ ${1:-} == --pick ]]; then
+  [[ -n ${2:-} ]] || usage
+  pick_and_open "$2"
+  exit 0
+fi
+
+pane="${1:-${TMUX_PANE:-}}"
+# cmd+click launches this without a pane argument; fall back to the active pane.
+[[ -n "$pane" ]] || pane="$(tmux display-message -p '#{pane_id}' 2>/dev/null || true)"
+
+urls_file="$(mktemp "${TMPDIR:-/tmp}/tmux-urls.XXXXXX")"
+
+tmux capture-pane -p -J -S -1000 ${pane:+-t "$pane"} \
+  | grep -oE '(https?|ftp)://[[:alnum:]#%&*+,./:;=?@_~!$-]+' \
+  | sed -E 's/[],.;:!?)}>]+$//' \
+  | awk '!seen[$0]++' > "$urls_file" || true
+
+if [[ ! -s "$urls_file" ]]; then
+  rm -f "$urls_file"
+  tmux display-message 'No URLs found in pane'
+  exit 0
+fi
+
+# One URL (e.g. an OAuth login prompt) opens immediately; several need the
+# picker, since a click cannot say which of them was meant.
+if [[ "$(wc -l < "$urls_file")" -eq 1 ]]; then
+  url="$(cat "$urls_file")"
+  rm -f "$urls_file"
+  opener "$url"
+  exit 0
+fi
+
+tmux display-popup -E -w 80% -h 40% "$0 --pick '$urls_file'"
