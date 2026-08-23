@@ -17,23 +17,34 @@ check() {
 printf 'Neovim portable environment\n\n'
 check nvim
 check git
+check curl
 check rg
 check fd
 check cc
 check clang++
+check cmake
+check ninja
+check node
+check npm
+check python3
 check zsh
+check tmux
 check tree-sitter
-check lazygit no
-check yazi no
-check clangd no
-check lua-language-server no
-check pyright-langserver no
-check ruff no
-check cmake-language-server no
-check starship no
-check trash no
-check codex no
-check claude no
+check lazygit
+check yazi
+check fzf
+check bat
+check zoxide
+check starship
+check trash
+check clangd
+check lua-language-server
+check pyright-langserver
+check ruff
+check cmake-language-server
+check codex
+check claude
+check pi
 
 if command -v nvim >/dev/null 2>&1; then
   printf '\n%s\n' "$(nvim --version | head -n 1)"

@@ -4,7 +4,8 @@ set -euo pipefail
 # Remove artifacts managed by install.sh without deleting credentials,
 # pre-install backups, or this Git checkout unless explicitly requested.
 
-readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
 readonly CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 readonly DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 readonly STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
@@ -19,7 +20,10 @@ REMOVE_REPO=0
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
-die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+die() {
+  printf '\033[1;31merror:\033[0m %s\n' "$*" >&2
+  exit 1
+}
 
 usage() {
   cat <<'EOF'
@@ -40,17 +44,20 @@ EOF
 
 while (($#)); do
   case "$1" in
-    -y|--yes) ASSUME_YES=1 ;;
-    --remove-repo) REMOVE_REPO=1 ;;
-    -h|--help) usage; exit 0 ;;
-    *) die "Unknown option: $1 (try --help)" ;;
+  -y | --yes) ASSUME_YES=1 ;;
+  --remove-repo) REMOVE_REPO=1 ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *) die "Unknown option: $1 (try --help)" ;;
   esac
   shift
 done
 
 validate_delete_target() {
   local path=$1
-  [[ -n "$path" && "$path" != / && "$path" != "$HOME" ]] || \
+  [[ -n "$path" && "$path" != / && "$path" != "$HOME" ]] ||
     die "Refusing unsafe removal target: ${path:-<empty>}"
 }
 
@@ -79,7 +86,7 @@ remove_managed_block() {
     $0 == start { skipping=1; next }
     $0 == end { skipping=0; next }
     !skipping { print }
-  ' "$destination" > "$temporary"
+  ' "$destination" >"$temporary"
   mv -- "$temporary" "$destination"
   log "Removed managed block from $destination"
 }
@@ -94,7 +101,7 @@ show_plan() {
     "$CACHE_HOME/nvim"
   printf '  portable-nvim blocks in ~/.bashrc, ~/.zshrc, and ~/.tmux.conf\n'
   printf '  the managed Fish symlink, if present\n'
-  printf '  the managed Yazi configuration symlink, if present\n'
+  printf '  the managed Yazi and LazyGit configuration symlinks, if present\n'
   printf '  installer-owned micromamba/Codex/Claude/Pi binaries, when marked\n'
   if ((REMOVE_REPO)); then
     printf '  repository: %s\n' "$SCRIPT_DIR"
@@ -109,7 +116,10 @@ confirm() {
   [[ -t 0 ]] || die "Non-interactive shell; rerun with --yes"
   local answer
   read -r -p 'Continue? [y/N] ' answer
-  [[ "$answer" == y || "$answer" == Y ]] || { log "Cancelled"; exit 0; }
+  [[ "$answer" == y || "$answer" == Y ]] || {
+    log "Cancelled"
+    exit 0
+  }
 }
 
 remove_owned_ai_tools() {
@@ -123,7 +133,7 @@ remove_owned_ai_tools() {
   fi
   if [[ -s "$PORTABLE_ROOT/pi-installed-by-nvim" ]]; then
     local pi_bin pi_prefix
-    IFS= read -r pi_bin < "$PORTABLE_ROOT/pi-installed-by-nvim"
+    IFS= read -r pi_bin <"$PORTABLE_ROOT/pi-installed-by-nvim"
     if [[ "$pi_bin" == */bin/pi ]]; then
       pi_prefix="${pi_bin%/bin/pi}"
       remove_file "$pi_bin"
@@ -178,6 +188,21 @@ main() {
     remove_file "$yazi_file"
   elif [[ -e "$yazi_file" || -L "$yazi_file" ]]; then
     warn "Keeping unrelated Yazi config: $yazi_file"
+  fi
+
+  local lazygit_dir lazygit_file
+  if command -v lazygit >/dev/null 2>&1; then
+    lazygit_dir="$(lazygit --print-config-dir)"
+  elif [[ "$(uname -s)" == Darwin ]]; then
+    lazygit_dir="$HOME/Library/Application Support/lazygit"
+  else
+    lazygit_dir="$CONFIG_HOME/lazygit"
+  fi
+  lazygit_file="$lazygit_dir/config.yml"
+  if [[ -L "$lazygit_file" && "$(readlink "$lazygit_file")" == "$CONFIG_DIR/lazygit/config.yml" ]]; then
+    remove_file "$lazygit_file"
+  elif [[ -e "$lazygit_file" || -L "$lazygit_file" ]]; then
+    warn "Keeping unrelated LazyGit config: $lazygit_file"
   fi
 
   remove_owned_ai_tools

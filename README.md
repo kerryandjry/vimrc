@@ -27,20 +27,31 @@ The full installation also links the repository's Yazi configuration to
 ### Installation behavior
 
 ```sh
-./install.sh          # install everything, or update an existing installation
-./bin/nvim-doctor     # show missing and active tools
+./install.sh            # install or restore committed plugin/extension locks
+./install.sh --update   # pull, advance every managed component, and verify
+./install.sh --verify   # run doctor and the full smoke test without updating
+./bin/nvim-doctor       # show missing and active tools
 ```
 
-The installer intentionally has no command-line options. Its first run installs
-the complete portable environment, shell configuration, plugins, Treesitter
-parsers, and the Codex, Claude Code, and Pi agent CLIs. Later runs update all
-managed packages, shell plugins, editor plugins, parsers, and AI CLIs.
+The default mode is reproducible at the repository level: it synchronizes
+Neovim plugins and Pi extensions to the committed lock files. It installs any
+missing portable tools and AI CLIs but does not deliberately advance an existing
+installation. `--update` requires a clean Git checkout, pulls with
+`--ff-only`, updates managed micromamba, all Conda packages, shell plugins,
+Codex, Claude Code, Pi, Pi extensions, Neovim plugins, and Treesitter parsers,
+then runs `nvim-doctor` and `tests/smoke.sh`. Plugin and Pi extension lock files
+are expected to change; review and commit them after a successful maintenance
+update. `--verify` changes no managed files.
 
-The AI CLIs use their official installers. The repository restores Pi's global
-settings, shared agent memory, PDF skill, and pinned extension packages from
-`pi/agent/`. Authentication, API keys, trust decisions, and session history
-remain machine-specific and are deliberately not committed: run `codex`,
-`claude`, and `pi` after installation to complete their separate sign-in flows.
+The AI CLIs use mutable HTTPS URLs for their official installers. Those vendors
+do not provide repository-pinned checksums for these scripts, so installation
+explicitly reports this trust boundary and logs each downloaded script's
+SHA-256 before execution. HTTPS protects transport but is not a substitute for
+a vendor signature. The repository restores Pi's global settings, shared agent
+memory, PDF skill, and pinned extension packages from `pi/agent/`.
+Authentication, API keys, trust decisions, and session history remain
+machine-specific and are deliberately not committed: run `codex`, `claude`,
+and `pi` after installation to complete their separate sign-in flows.
 
 Missing dependencies are installed from conda-forge into
 `~/.local/share/nvim-portable/env`. The bootstrap reuses an available
@@ -66,13 +77,24 @@ terminal, so no font is needed on the server.
 
 ## Update
 
+Run the reviewed maintenance workflow from a clean checkout:
+
 ```sh
 cd ~/.config/nvim
-git pull --ff-only
-./install.sh
+./install.sh --update
+git status --short
 ```
 
-`lazy-lock.json` pins plugin revisions, making installations reproducible.
+The update command pulls the repository before changing dependencies, restarts
+itself if the pull changed the installer, and runs the full verification suite
+afterward. Inspect changes to `lazy-lock.json`, `pi/agent/package.json`, and
+`pi/agent/package-lock.json`, then commit the reviewed versions. Fresh installs
+will receive those exact Neovim plugin and Pi extension revisions.
+
+Conda packages and vendor-installed AI CLIs cannot share one portable lock
+across all supported operating systems and CPU architectures; they are resolved
+from conda-forge or the vendors during installation. The Neovim 0.12 constraint
+in `install.sh` remains the compatibility boundary.
 
 ## Uninstall
 
