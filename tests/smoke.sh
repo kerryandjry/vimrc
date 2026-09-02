@@ -9,6 +9,17 @@ export NVIM_LOG_FILE="$build_dir/nvim.log"
 
 python3 "$repo_dir/tests/fixtures/python_ok.py"
 
+portable_env="${NVIM_ENV_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}/nvim-portable/env}"
+cc="${CC:-$portable_env/bin/cc}"
+[[ -x "$cc" ]] || cc="$(command -v cc || true)"
+[[ -n "$cc" && -x "$cc" ]] || {
+  printf 'No working C compiler was found\n' >&2
+  exit 1
+}
+printf 'C compiler: %s\n' "$cc"
+printf 'int main(void) { return 0; }\n' | "$cc" -x c - -o "$build_dir/c-smoke"
+"$build_dir/c-smoke"
+
 compiler_supports_stdlib() {
   local compiler=$1
   printf '#include <iostream>\nint main() {}\n' |
@@ -22,13 +33,12 @@ if [[ -n "$cxx" ]]; then
     exit 1
   }
 else
-  portable_env="${NVIM_ENV_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}/nvim-portable/env}"
   candidates=(
-    "$(command -v g++ || true)"
-    "$(command -v c++ || true)"
     "$portable_env/bin/c++"
     "$portable_env/bin/g++"
     "$portable_env/bin/clang++"
+    "$(command -v g++ || true)"
+    "$(command -v c++ || true)"
   )
   for candidate in "${candidates[@]}" "$portable_env"/bin/*-g++ "$portable_env"/bin/clang++-*; do
     if [[ -n "$candidate" && -x "$candidate" ]] && compiler_supports_stdlib "$candidate"; then

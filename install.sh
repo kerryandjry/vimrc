@@ -173,7 +173,7 @@ install_portable_tools() {
 	fi
 
 	local packages=(
-		"nvim>=0.12,<0.13" git curl ripgrep fd-find "tree-sitter-cli>=0.26.1" clang-tools zsh
+		"nvim>=0.12,<0.13" git curl ripgrep fd-find "tree-sitter-cli>=0.26.1" clang-tools c-compiler cxx-compiler zsh
 		"tmux>=3.3" lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
 		lua-language-server pyright cmake-language-server ruff pynvim
 	)
@@ -190,20 +190,35 @@ install_portable_tools() {
 		"$PACKAGE_MANAGER_BIN" update -y -p "$ENV_PREFIX" "${channel_args[@]}" --all
 	fi
 
-	# conda-forge versions clang++ (for example clang++-22) but does not always
-	# provide the unversioned compiler names unless the environment is activated.
-	# This setup intentionally works with PATH only, so create local aliases.
-	local candidate cxx=''
-	if [[ ! -x "$ENV_PREFIX/bin/clang++" ]]; then
-		for candidate in "$ENV_PREFIX"/bin/clang++-*; do
-			[[ -x "$candidate" ]] && cxx=$candidate
-		done
-		[[ -n "$cxx" ]] && ln -sfn "${cxx##*/}" "$ENV_PREFIX/bin/clang++"
-	fi
-	[[ -x "$ENV_PREFIX/bin/clang" && ! -e "$ENV_PREFIX/bin/cc" ]] && ln -s clang "$ENV_PREFIX/bin/cc"
-	[[ -x "$ENV_PREFIX/bin/clang++" && ! -e "$ENV_PREFIX/bin/c++" ]] && ln -s clang++ "$ENV_PREFIX/bin/c++"
+	# Compiler metapackages include the platform runtime/sysroot needed for
+	# parser linking. Prefer their GCC wrappers on Linux and Clang on macOS,
+	# then expose stable names because this environment is used through PATH
+	# without requiring `conda activate`.
+	local candidate cc='' cxx=''
+	for candidate in \
+		"$ENV_PREFIX/bin/gcc" "$ENV_PREFIX"/bin/*-gcc \
+		"$ENV_PREFIX/bin/clang" "$ENV_PREFIX"/bin/*-clang "$ENV_PREFIX"/bin/clang-[0-9]*; do
+		if [[ -x "$candidate" && "$candidate" != "$ENV_PREFIX/bin/cc" ]]; then
+			cc=$candidate
+			break
+		fi
+	done
+	for candidate in \
+		"$ENV_PREFIX/bin/g++" "$ENV_PREFIX"/bin/*-g++ \
+		"$ENV_PREFIX/bin/clang++" "$ENV_PREFIX"/bin/*-clang++ "$ENV_PREFIX"/bin/clang++-[0-9]*; do
+		if [[ -x "$candidate" && "$candidate" != "$ENV_PREFIX/bin/c++" ]]; then
+			cxx=$candidate
+			break
+		fi
+	done
+	[[ -n "$cc" ]] || die "The portable C compiler is missing after package installation"
+	[[ -n "$cxx" ]] || die "The portable C++ compiler is missing after package installation"
+	ln -sfn "${cc##*/}" "$ENV_PREFIX/bin/cc"
+	ln -sfn "${cxx##*/}" "$ENV_PREFIX/bin/c++"
 
 	export PATH="$ENV_PREFIX/bin:$LOCAL_BIN:$PATH"
+	export CC="$ENV_PREFIX/bin/cc"
+	export CXX="$ENV_PREFIX/bin/c++"
 }
 
 install_ai_tools() {
