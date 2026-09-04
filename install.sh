@@ -4,7 +4,8 @@ set -euo pipefail
 # Portable bootstrap for macOS, Linux workstations, and unprivileged clusters.
 # It never needs sudo: missing tools are installed in a Conda-compatible environment.
 
-readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
 readonly CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 readonly CONFIG_DIR="$CONFIG_HOME/nvim"
 readonly DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -427,8 +428,21 @@ sync_pi_packages() {
 	install -m 0644 "$source_dir/package.json" "$npm_dir/package.json"
 	install -m 0644 "$source_dir/package-lock.json" "$npm_dir/package-lock.json"
 	log "Restoring pinned Pi packages"
-	# Pi is supplied globally; do not install package peer declarations locally.
-	npm ci --omit=dev --legacy-peer-deps --prefix "$npm_dir"
+	# pi-vim imports the host API at runtime. Keep a local, locked copy because
+	# Node cannot resolve the separately installed global/managed Pi package on
+	# every platform (notably Pi's releases-v1 layout on Linux).
+	(
+		cd "$npm_dir"
+		npm ci --omit=dev --legacy-peer-deps
+	)
+	node - "$npm_dir" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+const root = process.argv[2];
+const piVim = require.resolve("pi-vim/package.json", { paths: [root] });
+const peer = path.join(path.dirname(path.dirname(piVim)), "@earendil-works", "pi-coding-agent", "package.json");
+fs.accessSync(peer, fs.constants.R_OK);
+NODE
 }
 
 install_claude_settings() {

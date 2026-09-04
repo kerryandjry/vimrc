@@ -45,6 +45,10 @@ check cmake-language-server
 check codex
 check claude
 check pi
+if command -v pi >/dev/null 2>&1 && ! pi --help >/dev/null 2>&1; then
+  printf '\033[31mFAIL\033[0m %-24s extensions could not load\n' pi
+  failed=1
+fi
 
 if command -v nvim >/dev/null 2>&1; then
   printf '\n%s\n' "$(nvim --version | head -n 1)"

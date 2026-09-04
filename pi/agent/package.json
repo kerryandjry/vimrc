@@ -2,6 +2,7 @@
   "name": "pi-extensions",
   "private": true,
   "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.84.4",
     "@vigolium/piolium": "^0.0.13",
     "pi-mcp-adapter": "^2.11.0",
     "pi-vim": "^0.14.1",
