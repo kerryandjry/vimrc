@@ -94,9 +94,22 @@ update_repository() {
 }
 
 have_modern_nvim() {
-	command -v nvim >/dev/null 2>&1 || return 1
-	nvim --clean --headless "+lua if vim.fn.has('nvim-0.12') ~= 1 then vim.cmd('cquit') end" +qa \
-		>/dev/null 2>&1
+	local nvim_bin output
+	nvim_bin="$(command -v nvim 2>/dev/null)" || {
+		warn "Neovim was not found on PATH"
+		return 1
+	}
+	if ! output="$("$nvim_bin" --version 2>&1)"; then
+		warn "Neovim could not start: $nvim_bin"
+		printf '%s\n' "$output" >&2
+		return 1
+	fi
+	if ! output="$("$nvim_bin" --clean --headless -i NONE \
+		"+lua if vim.fn.has('nvim-0.12') ~= 1 then vim.cmd('cquit') end" +qa 2>&1)"; then
+		warn "Neovim started but is not a usable 0.12.x build: $nvim_bin"
+		printf '%s\n' "$output" >&2
+		return 1
+	fi
 }
 
 install_micromamba() {
@@ -173,10 +186,15 @@ install_portable_tools() {
 		select_package_manager
 	fi
 
+	# nvim 0.12.x packages currently link to unibilium's historical
+	# libunibilium.so.. SONAME. unibilium 2.1.4 changed that SONAME without an
+	# upper-bound-compatible ABI, so keep 2.1.2 until nvim is rebuilt upstream.
+	# Node 26 prereleases are also incompatible with the bundled npm 11 CLI.
 	local packages=(
-		"nvim>=0.12,<0.13" git curl ripgrep fd-find "tree-sitter-cli>=0.26.1" clang-tools c-compiler cxx-compiler zsh
-		"tmux>=3.3" lazygit yazi fzf bat zoxide starship trash-cli bash-completion cmake ninja nodejs python
-		lua-language-server pyright cmake-language-server ruff pynvim
+		"nvim>=0.12,<0.13" "unibilium=2.1.2" git curl ripgrep fd-find "tree-sitter-cli>=0.26.1"
+		clang-tools c-compiler cxx-compiler zsh "tmux>=3.3" lazygit yazi fzf bat zoxide starship
+		trash-cli bash-completion cmake ninja "nodejs>=22.19,<25" python lua-language-server pyright
+		cmake-language-server ruff pynvim
 	)
 	local channel_args=(-c conda-forge --override-channels --strict-channel-priority)
 
